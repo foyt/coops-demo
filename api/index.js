@@ -151,6 +151,8 @@
                     res.send("Could not apply the patch", 409);
                     return;
                   }
+                } else {
+                  content = file.content;
                 }
                 
                 db.filerevisions.insert({
@@ -165,7 +167,7 @@
                     res.send(revisionErr, 500);
                   } else {
                     var properties = _.extend(file.properties||{}, fileRevision.properties);
-                    db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: properties }, { multi: false }, function(updateErr) {
+                    db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: properties, contentType: file.contentType, }, { multi: false }, function(updateErr) {
                       if (updateErr) {
                         res.send(updateErr, 500);
                       } else {
