@@ -191,6 +191,28 @@
       }
       
       res.redirect('/login');
+    },
+    ensureFileUser: function (req, res, next) {
+      var fileId = new ObjectId(req.params.fileid);
+      
+      db.fileusers.findOne({ fileId: fileId, userId: req.user._id }, function (err, fileUser) {
+        if (err) {
+          res.send(err, 500);
+        } else {
+          if (fileUser) {
+            next();
+          } else {
+            db.fileusers.insert({ fileId: fileId, userId: req.user._id, role: "GUEST" }, function (userErr, fileUser) {
+              if (userErr) {
+                res.send(userErr, 500);
+              } else {
+                next();
+              }
+            });
+          }
+        }
+      });
+
     }
   };
 
