@@ -1,4 +1,12 @@
 language: node_js
 node_js:
-  - "0.11"
-  - "0.10"
+- '0.11'
+- '0.10'
+deploy:
+  provider: npm
+  email: development@foyt.fi
+  api_key:
+    secure: Sbg31/WPnBQg9DjBitP0f7jht1+2FeA/TrMmrv3lWOCzQQP9y9JcJtjUz48NFys4FEKL1splHJuW9XBO77bigxFGew/Id0tKcffI1FtY4MHFytUQJcemyHeo7KCy9a8E82n12yyOn48WxxmqxAGJdxfN5FskmIZpFDEn3oB5AYY=
+  on:
+    repo: foyt/coops-demo
+    branch: master
