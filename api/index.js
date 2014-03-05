@@ -2,6 +2,7 @@
   
   var uuid = require('node-uuid');
   var crypto = require('crypto');
+  var _ = require('underscore');
   var ObjectId = require('mongojs').ObjectId;
   
   var db = require('../db');
@@ -29,13 +30,12 @@
             if (!file) {
               res.send(404, "Not Found");
             } else {
-              // TODO: Properties
               res.setHeader('Content-Type', 'application/json; charset=utf-8');
               res.send(200, JSON.stringify({
                 "revisionNumber": file.revisionNumber,
                 "content": file.content,
                 "contentType": file.contentType,
-                "properties": {}
+                "properties": file.properties
               }));
             }
           }
@@ -71,13 +71,13 @@
                   
                   for (var i = 0, l = fileRevisions.length; i < l; i++) {
                     var fileRevision = fileRevisions[i];
-                    // TODO: Extensions, properties
+                    // TODO: Extensions
                     patches.push({
                       "sessionId": fileRevision.sessionId,
                       "revisionNumber": fileRevision.revisionNumber,
                       "checksum": fileRevision.checksum,
                       "patch": fileRevision.patch,
-                      "properties": { },
+                      "properties": fileRevision.properties,
                       "extensions": { }
                     });
                   }
@@ -154,19 +154,19 @@
                   }
                 }
                 
-                // TODO: Properties
-                
                 db.filerevisions.insert({
                   fileId: file._id,
                   revisionNumber: patchRevisionNumber,
                   patch: patch,
                   checksum: checksum,
-                  sessionId: sessionId
+                  sessionId: sessionId,
+                  properties: reqBody.properties
                 }, function (revisionErr, fileRevision) {
                   if (revisionErr) {
                     res.send(revisionErr, 500);
                   } else {
-                    db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber }, { multi: false }, function(updateErr) {
+                    var properties = _.extend(file.properties, fileRevision.properties);
+                    db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: properties }, { multi: false }, function(updateErr) {
                       if (updateErr) {
                         res.send(updateErr, 500);
                       } else {
@@ -225,8 +225,6 @@
                   "Client supported: " + clientAlgorithms.toString());
               return;
             } else {
-              // TODO: Properties
-              
               db.sessions.insert({ userId: req.user.id, algorithm: algorithm.getName() }, function (sessionErr, session) {
                 if (sessionErr) {
                   res.send(500, sessionErr);
@@ -238,7 +236,7 @@
                     "revisionNumber": file.revisionNumber,
                     "content": file.content,
                     "contentType": file.contentType,
-                    "properties": {},
+                    "properties": file.properties,
                     "extensions": {
                       "x-http-method-override": {}
                     }

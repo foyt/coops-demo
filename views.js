@@ -29,7 +29,7 @@
   };
   
   module.exports.newdoc = function (req, res) {
-    db.files.insert({ revisionNumber: 0, name: uuid.v4(), content: "", contentType: 'text/html;editor=CKEditor' }, function(err, file) {
+    db.files.insert({ revisionNumber: 0, content: "", contentType: 'text/html;editor=CKEditor', properties: { name: uuid.v4() } }, function(err, file) {
       if (err) {
         res.send(err, 500);
       } else {
