@@ -10,7 +10,7 @@
   module.exports.index = function (req, res) {
     if (!req.isAuthenticated()) {
       res.render('index', {
-        title : 'Co-Ops Demo',
+        title : 'CoOPS Demo',
         version: packageJson.version,
         loggedUser: req.user,
         files: []
@@ -25,7 +25,7 @@
               res.send(err, 500);
             } else {
               res.render('index', {
-                title : 'Co-Ops Demo',
+                title : 'CoOPS Demo',
                 version: packageJson.version,
                 loggedUser: req.user,
                 files: files
@@ -39,7 +39,7 @@
 
   module.exports.about = function (req, res) {
     res.render('about', {
-      title : 'About Co-Ops Demo',
+      title : 'About CoOPS Demo',
       version: packageJson.version,
       loggedUser: req.user
     });
