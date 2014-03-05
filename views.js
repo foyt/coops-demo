@@ -1,15 +1,40 @@
 (function() {
   
-  var db = require('./db');
+  var async = require('async');
   var ObjectId = require('mongojs').ObjectId;
+  var _ = require('underscore');
+
+  var db = require('./db');
   var packageJson = require('./package.json');
   
   module.exports.index = function (req, res) {
-    res.render('index', {
-      title : 'Co-Ops Demo',
-      version: packageJson.version,
-      loggedUser: req.user
-    });
+    if (!req.isAuthenticated()) {
+      res.render('index', {
+        title : 'Co-Ops Demo',
+        version: packageJson.version,
+        loggedUser: req.user,
+        files: []
+      });
+    } else {
+      db.fileusers.find( { userId: new ObjectId( req.user._id.toString() ) }, function (err, fileUsers) {
+        if (err) {
+          res.send(err, 500);
+        } else {
+          db.files.find( { _id: { $in: _.pluck(fileUsers, 'fileId') } }, function (err, files) {
+            if (err) {
+              res.send(err, 500);
+            } else {
+              res.render('index', {
+                title : 'Co-Ops Demo',
+                version: packageJson.version,
+                loggedUser: req.user,
+                files: files
+              });
+            }
+          });
+        }
+      });
+    }
   };
 
   module.exports.about = function (req, res) {
@@ -32,7 +57,13 @@
       if (err) {
         res.send(err, 500);
       } else {
-        res.redirect('/editdoc/' + file._id.toString());
+        db.fileusers.insert({ fileId: file._id, userId: req.user._id, role: "OWNER" }, function (usersErr, fileUsers) {
+          if (usersErr) {
+            res.send(usersErr, 500);
+          } else {
+            res.redirect('/editdoc/' + file._id.toString());
+          }
+        });
       }
     });
   };

@@ -24,11 +24,25 @@ block content
       |And this demo from: 
       a(href="https://github.com/foyt/coops-demo")
         |https://github.com/foyt/coops-demo 
-  h3
-    |Your files
   if loggedUser
+    div(class="create-container")
+      a(href="/newdoc")
+        |New Document
+    h3
+      |Your files
     div(class="file-list")
+      if files.length == 0
+        |No files found
+      each file in files
+        if file.contentType == 'text/html;editor=CKEditor'
+          a(class="file-list-item file-list-item-document",href="/editdoc/#{file._id}")
+            = file.properties.title
+        else
+          a(class="file-list-item file-list-item-unknown",href="javascript:alert('#{file._id} type is unknown')",data-content-type="#{file.contentType}")
+            = file.properties.title
   else
+    h3
+      |Your files
     div
       a(href="/login")
         |Login to see your files
