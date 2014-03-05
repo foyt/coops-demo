@@ -1,0 +1,32 @@
+extend layout
+block header
+  div(class="index-container")
+    a(href="/")
+      |Index Page
+block content
+  img(src="/gfx/coops-logo.png",class="view-image") 
+  h2 
+    |CoOps Demo
+  h3
+    |About CoOps Demo #{version}
+  p(class="info-text")
+    |This is a demo implementation of Co-Ops -collaboration protocol. 
+    |This demo is implemented with NodeJs but the protocol it self is not language specific in any way.
+  p(class="info-text")
+    |All the components of this demo are Open Source and can be found from GitHub. 
+    p(class="info-text")
+      |Protocol specification can be found from: 
+      a(href="https://github.com/foyt/coops-spec")
+        |https://github.com/foyt/coops-spec
+      br
+      |And this demo from: 
+      a(href="https://github.com/foyt/coops-demo")
+        |https://github.com/foyt/coops-demo 
+  h3
+    |Your files
+  if loggedUser
+    div(class="file-list")
+  else
+    div
+      a(href="/login")
+        |Login to see your files

@@ -1,0 +1,21 @@
+extend layout
+block head
+  script(type="text/javascript",src="http://cdnjs.cloudflare.com/ajax/libs/ckeditor/4.2/ckeditor.js")
+  script(type="text/javascript",src="/editdoc.js")
+block header
+  div(class="index-container")
+    a(href="/")
+      |Index
+  div(class="about-container")
+    a(href="/about")
+      |About
+block content
+  h2 
+    span
+      |#{title}
+    span(class="editor-status")
+      |Initializing...
+  p(class="info-text")
+    |You can edit this document with your friends
+  div(class="editor")
+    div(id="ckcontainer")

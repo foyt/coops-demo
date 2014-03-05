@@ -1,0 +1,26 @@
+extend layout
+block header
+  div(class="about-container")
+    a(href="/about")
+      |About
+block content
+  img(src="/gfx/login-required.png",class="view-image") 
+  h2 
+    |Login Required
+  p(class="info-text")
+    |Co-OPS requires that you identify your self, please use one of the services listed below
+  div(class="login-button")
+    a(href="/auth/facebook")
+      img(src="/gfx/login-facebook.png")
+      span
+        |Login with Facebook
+  div(class="login-button")
+    a(href="/auth/google")
+      img(src="/gfx/login-google.png")
+      span
+        |Login with Google
+  div(class="login-button")
+    a(href="/auth/github")
+      img(src="/gfx/login-github.png")
+      span
+        | Login with GitHub

@@ -1,0 +1,97 @@
+extend layout
+block header
+  div(class="index-container")
+    a(href="/")
+      |Index Page
+block content
+  img(src="/gfx/coops-logo.png",class="view-image") 
+  h2 
+    |CoOps Demo
+  h3
+    |About CoOps Demo #{version}
+  p(class="info-text")
+    |This is a demo implementation of Co-Ops -collaboration protocol. 
+    |This demo is implemented with NodeJs but the protocol it self is not language specific in any way.
+  p(class="info-text")
+    |All the components of this demo are Open Source and can be found from GitHub. 
+    p(class="info-text")
+      |Protocol specification can be found from: 
+      a(href="https://github.com/foyt/coops-spec")
+        |https://github.com/foyt/coops-spec
+      br
+      |And this demo from: 
+      a(href="https://github.com/foyt/coops-demo")
+        |https://github.com/foyt/coops-demo 
+  h3
+    |Participation
+  p(class="info-text")
+    |There are many ways you can participate in this project     
+  p(class="info-text")
+    b
+      |Firts of all if use Co-Ops you are already participating, so keep doing that :)
+  p(class="info-text")
+    b
+      |Secondly, if you manage to find a bug you should always report it. 
+    |This can be done in 
+    a(href="https://github.com/foyt/coops-demo/issues")
+      |Demo project Issue Tracker 
+  p(class="info-text")
+    b
+      |if your programming skills are sufficient 
+    |you should fix the bug and make a pull request directly to the GitHub project.
+  p(class="info-text")
+    b
+      |The CoOps protocol is also developed as Open Source. 
+    |So if you have suggestion that we should change something, you can do that by submitting a issue in 
+    a(href="https://github.com/foyt/coops-spec/issues")
+      |Specification project Issue Tracker
+  p(class="info-text")
+    b
+      |The Protocol is also extensible by protocol extensions. 
+    |Extensions are not directly part of the specification but you may suggest that your extension should be 
+    |defined in 
+    a(href="https://github.com/foyt/coops-spec#extensions")
+      |Extensions part of the specification.
+  h3
+    |Thanks
+  p(class="info-text")
+    b
+      |This project would not be possible without help of many other. 
+    p(class="info-text")
+      b
+        |We would like to thank Everaldo Coelho and Neil Hainsworth 
+      |for providing Crystal Clear (Everaldo), Kids (Everaldo) and Free Social Icons (Neil) -iconsets which are both used in this site.
+    p(class="info-text")
+      b
+        |And "Ainara" for the 
+      a(href="http://openclipart.org/detail/169130/mapa-de-redes-by-ainara14-169130")
+        |Co-Ops Logo
+  h3
+    |Contributors
+  p(class="info-text")
+    b
+      |Antti Leppä (
+      a(href="https://github.com/anttileppa")
+        |GitHub Profile
+      |)
+    ul
+      li
+        |Co-Founder of 
+        a(href="https://github.com/foyt/coops-spec")
+          |CoOps.
+      li
+        a(href="https://github.com/foyt/coops-server-node")
+          |CoOps server for node.js
+      li
+        a(href="https://github.com/foyt/coops-demo-node")
+          |This Demo
+    b
+      |Simo Rantanen (
+      a(href="https://github.com/simranta")
+        |GitHub Profile
+      |)
+    ul
+      li
+        |Co-Founder of 
+        a(href="https://github.com/foyt/coops-spec")
+          |CoOps.

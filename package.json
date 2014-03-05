@@ -1,0 +1,30 @@
+{
+  "author": "Antti Leppä / Foyt",
+  "name": "coops-demo",
+  "version": "0.0.3",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/foyt/coops-demo.git"
+  },
+  "engines": {
+    "node": ">=0.10.0"
+  },
+  "dependencies": {
+    "express": "3.4.8",
+    "mongojs": "0.10.0",
+    "passport": "0.2.0",
+    "passport-facebook": "1.0.2",
+    "passport-github": "0.1.5",
+    "passport-google-oauth": "0.1.5",
+    "jade": "1.3.0",
+    "underscore": "1.6.0",
+    "async": "0.2.10",
+    "broadway": "0.2.9",
+    "googlediff": "0.1.0",
+    "node-uuid": "1.4.1"
+  },
+  "subdomain": "coops-demo",
+  "scripts": {
+    "start": "node app.js"
+  }
+}
