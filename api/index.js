@@ -1,6 +1,5 @@
 (function() {
   
-  var uuid = require('node-uuid');
   var crypto = require('crypto');
   var _ = require('underscore');
   var ObjectId = require('mongojs').ObjectId;
@@ -165,7 +164,7 @@
                   if (revisionErr) {
                     res.send(revisionErr, 500);
                   } else {
-                    var properties = _.extend(file.properties, fileRevision.properties);
+                    var properties = _.extend(file.properties||{}, fileRevision.properties);
                     db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: properties }, { multi: false }, function(updateErr) {
                       if (updateErr) {
                         res.send(updateErr, 500);

@@ -1,6 +1,5 @@
 (function() {
   
-  var uuid = require('node-uuid');
   var db = require('./db');
   var ObjectId = require('mongojs').ObjectId;
   var packageJson = require('./package.json');
@@ -29,7 +28,7 @@
   };
   
   module.exports.newdoc = function (req, res) {
-    db.files.insert({ revisionNumber: 0, content: "", contentType: 'text/html;editor=CKEditor', properties: { name: uuid.v4() } }, function(err, file) {
+    db.files.insert({ revisionNumber: 0, content: "", contentType: 'text/html;editor=CKEditor', properties: { title: 'Untitled' } }, function(err, file) {
       if (err) {
         res.send(err, 500);
       } else {
@@ -52,7 +51,8 @@
           } else {
             res.render('editdoc', {
               title : 'Edit document',
-              loggedUser: req.user
+              loggedUser: req.user,
+              file: file
             });
           }
         }

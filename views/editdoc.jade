@@ -11,14 +11,15 @@ block header
     a(href="/about")
       |About
 block content
-  h2 
-    span
-      |#{title}
+  div(class="editor-header")
     span(class="editor-status")
       |Initializing...
+    h2
+      span
+        |#{title}
   p(class="info-text")
     |You can edit this document with your friends
   div(class="editor")
     div(id="title-container")
-      input(type="text", name="name")
+      input(type="text", name="name", value="#{file.properties.title}")
     div(id="ckcontainer")

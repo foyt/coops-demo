@@ -27,12 +27,14 @@
           cursorBlinkInterval: 1.2
         }
       }
-    }, 'Content loading...');
+    });
     
-    editor.on("CoOPS:WebSocketConnect", function (event) {
+/* CoOps status messages */
+    
+    editor.on("CoOPS:SessionStart", function (event) {
       $('.editor-status').html('Loaded');
     });
-  
+    
     editor.on("CoOPS:ContentDirty", function (event) {
       $('.editor-status').html('Unsaved');
     });
@@ -43,6 +45,31 @@
     
     editor.on("CoOPS:PatchAccepted", function (event) {
       $('.editor-status').html('Saved');
+    });
+    
+    $('input[name="name"]').change(function (event) {
+      var oldValue = $(this).parent().data('old-value');
+      var value = $(this).val();
+      $(this).parent().data('old-value', value);
+      
+      editor.fire("propertiesChange", {
+        properties : [{
+          property: 'title',
+          oldValue: oldValue,
+          currentValue: value
+        }]
+      });
+    });
+    
+    editor.on("CoOPS:PatchReceived", function (event) {
+      var properties = event.data.properties;
+      if (properties) {
+        $.each(properties, function (key, value) {
+          if (key == 'title') {
+            $('input[name="name"]').val(value);
+          }
+        });
+      }
     });
   });
   
