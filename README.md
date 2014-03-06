@@ -1,3 +1,4 @@
+[![Stories in Ready](https://badge.waffle.io/foyt/coops-demo.png?label=ready&title=Ready)](https://waffle.io/foyt/coops-demo)
 Up to date documentation
 ========================
 
