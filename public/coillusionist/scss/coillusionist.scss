@@ -1,0 +1,52 @@
+@import "fonts.scss";
+
+.co-illusionist {
+  position: relative;
+}
+
+.co-illusionist-screen {
+}
+
+.co-illusionist-toolbar {
+  position: absolute;
+  width: 60px;
+  height: 400px;
+  background: #000;
+  margin-left: -60px;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  top: 0px;
+  
+}
+
+.co-illusionist-tool {
+  @extend [class^="icon-"];
+  background: #333;
+  width: 48px;
+  border-radius: 10px;
+  margin: 5px;
+  text-align: center;
+  font-size: 24px;
+  color: #6af;
+  border: 1px solid #222;
+  padding-top: 12px;
+  padding-bottom: 12px;
+  cursor: pointer;
+}
+
+.co-illusionist-tool-selected {
+  color: #6fa;
+}
+
+.co-illusionist-tool:hover {
+  background: #444;
+  border: 1px solid #333;
+}
+
+.co-illusionist-tool-pencil:before {
+  @extend .icon-pencil:before;
+}
+
+.co-illusionist-tool-select-rect:before {
+  @extend .icon-rect-select:before;
+}
