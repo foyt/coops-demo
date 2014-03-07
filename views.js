@@ -125,8 +125,7 @@
             res.render('editimg', {
               title : 'Edit image',
               loggedUser: req.user,
-              file: file,
-              content: '/viewimg/' + fileId
+              file: file
             });
             
           }

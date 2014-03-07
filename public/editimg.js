@@ -2,28 +2,18 @@
   'use strict';
   
   $(document).ready(function() {
-    $('<div>')
+    
+    var location = window.document.location;
+    var path = location.pathname.split('/');
+    var fileId = path[2];
+    var serverUrl = '/files/' + fileId + '';
+    
+    var coIllusionist = $('<div>')
       .appendTo($('#image-container'))
       .CoIllusionist({
-        image: $('.co-illusionist-image'),
-        trackChanges: true
-      })
-      .on('offscreen.change', function (event, data) {
-        var delta = data.delta;
-        var patch = {
-          width: data.width,
-          height: data.height,
-          delta: {}
-        };
-        
-        for (var i = 0, l = delta.length; i < l; i++) {
-          patch.delta[delta[i].index] = delta[i].to;
-        }
-        
-        var patchText = JSON.stringify(patch);
+        trackChanges: true,
+        serverUrl: serverUrl
       });
-
-      $('.co-illusionist-image').remove();
   });
 
 }).call(this);
