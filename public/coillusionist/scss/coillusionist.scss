@@ -1,5 +1,21 @@
 @import "fonts.scss";
 
+$transparent-background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAIAAADZF8uwAAAAGUlEQVQYV2M4gwH+YwCGIasIUwhT25BVBADtzYNYrHvv4gAAAABJRU5ErkJggg==");
+$toolbar-width: 60px;
+$toolbar-height: 400px;
+$toolbar-background: #000;
+$toolbar-border-radius: 10px;
+$toolbar-icon-color: #6af;
+$toolbar-icon-color-selected: #6fa;
+$toolbar-button-width: 48px;
+$toolbar-button-margin: 5px;
+$paintbar-width: 60px;
+$paintbar-button-width: 48px;
+$paintbar-button-height: 48px;
+$paintbar-button-border: 1px solid #fff;
+$paintbar-button-border-radius: 5px;
+$paintbar-button-margin: 5px;
+
 .co-illusionist {
   position: relative;
 }
@@ -10,25 +26,24 @@
 
 .co-illusionist-toolbar {
   position: absolute;
-  width: 60px;
-  height: 400px;
-  background: #000;
-  margin-left: -60px;
-  border-top-left-radius: 10px;
-  border-bottom-left-radius: 10px;
-  top: 0px;
-  
+  width: $toolbar-width;
+  height: $toolbar-height;
+  background: $toolbar-background;
+  margin-left: -$toolbar-width;
+  border-top-left-radius: $toolbar-border-radius;
+  border-bottom-left-radius: $toolbar-border-radius;
+  top: 0px; 
 }
 
 .co-illusionist-tool {
   @extend [class^="icon-"];
   background: #333;
-  width: 48px;
+  width: $toolbar-button-width;
   border-radius: 10px;
-  margin: 5px;
+  margin: $toolbar-button-margin;
   text-align: center;
   font-size: 24px;
-  color: #6af;
+  color: $toolbar-icon-color;
   border: 1px solid #222;
   padding-top: 12px;
   padding-bottom: 12px;
@@ -36,7 +51,7 @@
 }
 
 .co-illusionist-tool-selected {
-  color: #6fa;
+  color: $toolbar-icon-color-selected;
 }
 
 .co-illusionist-tool:hover {
@@ -50,4 +65,118 @@
 
 .co-illusionist-tool-select-rect:before {
   @extend .icon-rect-select:before;
+}
+
+.co-illusionist-paintbar {
+  position: absolute;
+  width: $paintbar-width;
+  background: #000;
+  margin-left: -$toolbar-width;
+  border-top-left-radius: 10px;
+  border-bottom-left-radius: 10px;
+  bottom: 5px;
+  text-align: center;
+}
+
+.co-illusionist-paintbar-button-container {
+  background-image: $transparent-background;
+  width: $paintbar-button-width;
+  height: $paintbar-button-height;
+  border: $paintbar-button-border;
+  border-radius: $paintbar-button-border-radius;
+  display: inline-block;
+  vertical-align: top;
+  margin: $paintbar-button-margin;
+  position: relative;
+}
+
+.co-illusionist-paintbar-button-container:last-child {
+  margin-top: 0px;
+}
+
+.co-illusionist-paintbar-button {
+  cursor: pointer;
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+  border-radius: $paintbar-button-border-radius;
+}
+
+.ui-dialog * {
+  font-family: Gadget;
+  font-size: 12px;
+  font-variant: small-caps;
+}
+
+.ui-dialog .ui-dialog-buttonpane {
+  padding: 0px;
+}
+
+.co-illusionist-paintdialog.ui-dialog-content {
+  padding: 0px;
+  margin: 0px;
+}
+
+.co-illusionist-paintdialog .ui-tabs-nav.ui-widget-header {
+  background: none;
+  border: none;
+}
+
+.co-illusionist-paintdialog .ui-tabs-panel {
+  background: #fff;
+  border: 1px solid #aaa;
+  margin-left: 2px;
+}
+
+.co-illusionist-paintdialog .sp-container {
+  border: none;
+  background: none;
+  height: 164px;
+  overflow: hidden;
+}
+
+.co-illusionist-paintdialog .sp-picker-container {
+  padding-left: 0px;
+  padding-top: 0px;
+}
+
+.co-illusionist-paintdialog .co-illusionist-paintdialog-preview {
+  display: block;
+  width: 60px;
+  height: 40px;
+  position: absolute;
+  top: 47px;
+  right: 20px;
+  border: 1px solid #000;
+  background-image: $transparent-background;
+}
+
+.co-illusionist-paintdialog-preview span {
+  position: absolute;
+  top: 0px;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+}
+
+.co-illusionist-paintdialog-patterns {
+  overflow-y: scroll;
+  max-height: 168px;
+}
+
+.co-illusionist-paintdialog-pattern {
+  display: inline-block;
+  margin: 5px;
+  width: 32px;
+  height: 32px;
+  text-align: center;
+}
+
+.co-illusionist-paintdialog-pattern img {
+  max-width: 32px;
+  max-height: 32px;
+  vertical-align: middle; 
+  cursor: pointer;
 }
