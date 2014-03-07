@@ -1,6 +1,6 @@
 (function() {
   'use strict';
-
+  
   $.widget("custom.CoIllusionistTool", {
     options : {},
     _create : function() {
@@ -363,11 +363,13 @@
   
   $.widget("custom.CoIllusionist", {
     options : {
-      image: null
+      image: null,
+      trackChanges: false
     },
     _create : function() {
       this._mouseDown = false;
       this._selection = [0, 0, 0, 0];
+      this._currentdata = null;
       
       this.element.addClass('co-illusionist');
       
@@ -402,6 +404,11 @@
       
       this.drawOffscreen($.proxy(function (ctx, done) {
         ctx.drawImage(this.options.image.get(0), 0, 0);
+        
+        if (this.options.trackChanges) {
+          this._currentData = this._rpgsToIntArr(this.data().data);
+        }
+        
         done();
       }, this));
     },
@@ -468,6 +475,20 @@
       var ctx = this._offscreen.get(0).getContext("2d");
       return ctx.createPattern(image, "repeat");
     },
+    
+    data: function () {
+      var ctx = this._offscreen.get(0).getContext("2d");
+      return ctx.getImageData(0, 0, this._offscreen.get(0).width, this._offscreen.get(0).height);
+    },
+    
+    _rpgsToIntArr: function (rgbas) {
+      var ints = new Array(rgbas.length >> 2);
+      for (var i = 0, l = rgbas.length; i < l; i += 4) {
+        ints[i >> 2] = ((rgbas[i] << 24) + (rgbas[i + 1] << 16) + (rgbas[i + 2] << 8) + (rgbas[i + 3] << 0)) >>> 0;
+      }
+      
+      return ints;
+    },
 
     _onOffscreenBeforeDraw: function () {
 
@@ -475,6 +496,33 @@
     
     _onOffscreenAfterDraw: function () {
       this.requestFlip();
+      
+      if (this.options.trackChanges) {
+        var currentData = this._rpgsToIntArr(this.data().data);
+        var delta = this._diffImageData(this._currentData, currentData);
+        if (delta.length > 0) {
+          this.element.trigger("offscreen.change", {
+            delta: delta
+          });
+        }
+
+        this._currentData = currentData;
+      }
+    },
+    
+    _diffImageData: function (data1, data2) {
+      var delta = [];
+      
+      for (var i = 0; i < data1.length; i++) {
+        var d1 = data1[i];
+        var d2 = data2[i];
+        
+        if (d1 !== d2) {
+          delta.push({ index: i, from: d1, to: d2 });
+        }
+      }
+      
+      return delta;
     },
     
     _flipToScreen: function () {
