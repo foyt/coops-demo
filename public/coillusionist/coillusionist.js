@@ -34,6 +34,8 @@
   
   $.widget("custom.CoIllusionistToolPencil", {
     _create : function() {
+      this._size = 10;
+      
       this._screenMouseDownListener = $.proxy(this._onScreenMouseDown, this);
       this._screenMouseDragListener = $.proxy(this._onScreenMouseDrag, this);
       
@@ -43,6 +45,14 @@
           deactivate: $.proxy(this._onDeactivate, this)
         })
         .addClass('co-illusionist-tool-pencil');
+    },
+    
+    size: function (size) {
+      if (size) {
+        this._size = size;
+      }
+      
+      return this._size;
     },
     
     _getCoIllusionist: function () {
@@ -66,7 +76,13 @@
     },
     
     _onScreenMouseDrag: function (event, data) {
-     
+      this._getCoIllusionist().CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
+        ctx.beginPath();
+        ctx.arc(data.screenX, data.screenY, this.size(), 0, 2 * Math.PI, false);
+        ctx.fill();
+        ctx.closePath();
+        done();
+      }, this));
     },
     
     _destroy : function() {
@@ -171,6 +187,7 @@
         var ctx = this._offscreen.get(0).getContext("2d");
         this.element.trigger("offscreen.beforedraw");
         func(ctx, $.proxy(function () {
+          this._flipToScreen();
           this.element.trigger("offscreen.afterdraw");
         }, this));
       }
@@ -276,7 +293,6 @@
         ctx.strokeStyle = gradient;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 1;
-        
         ctx.strokeRect(this._selection[0], this._selection[1], width, height);
         ctx.fillRect(this._selection[0], this._selection[1], width, height);
         done();
