@@ -53,17 +53,6 @@
         };
       },
       
-      unpatch: function(patch, text) {
-        return {
-          applied: patchApplied,
-          patchedText: text
-        };
-      },
-      
-      makePatch: function(original, modified) {
-        
-      },
-      
       getName: function () {
         return 'uint2darr-lw';
       }
