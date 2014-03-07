@@ -364,7 +364,8 @@
   $.widget("custom.CoIllusionist", {
     options : {
       image: null,
-      trackChanges: false
+      trackChanges: false,
+      serverUrl: null
     },
     _create : function() {
       this._mouseDown = false;
@@ -373,12 +374,8 @@
       
       this.element.addClass('co-illusionist');
       
-      var width = this.options.image.get(0).width;
-      var height = this.options.image.get(0).height;
-      
       this._screen = $('<canvas>')
         .addClass('co-illusionist-screen')
-        .attr({ width: width, height: height })
         .on("mousedown", $.proxy(this._onMouseDown, this))
         .on("mouseup", $.proxy(this._onMouseUp, this))
         .on("mousemove", $.proxy(this._onMouseMove, this))
@@ -387,7 +384,6 @@
       this._offscreen = $('<canvas>')
         .hide()
         .addClass('co-illusionist-offscreen')
-        .attr({ width: width, height: height })
         .appendTo(this.element);
 
       this.element.on("offscreen.beforedraw", $.proxy(this._onOffscreenBeforeDraw, this));
@@ -402,13 +398,29 @@
       
       this.element.append($('<div>').CoIllusionistPaintBar());
       
+      if (this.options.image) {
+        this.loadImage(this.options.image);
+      }
+      
+      if (this.options.serverUrl) {
+        $(this.element).CoIllusionistCoOPS({
+          serverUrl: this.options.serverUrl
+        });
+      }
+    },
+    
+    loadImage: function (image) {
+      var width = image.width;
+      var height = image.height;
+
+      this._offscreen.attr({ width: width, height: height });
+      this._screen.attr({ width: width, height: height });
+      
       this.drawOffscreen($.proxy(function (ctx, done) {
-        ctx.drawImage(this.options.image.get(0), 0, 0);
-        
+        ctx.drawImage(image, 0, 0);
         if (this.options.trackChanges) {
-          this._currentData = this._rpgsToIntArr(this.data().data);
+          this.resetChanges();
         }
-        
         done();
       }, this));
     },
@@ -481,6 +493,10 @@
       return ctx.getImageData(0, 0, this._offscreen.get(0).width, this._offscreen.get(0).height);
     },
     
+    resetChanges: function () {
+      this._currentData = this._rpgsToIntArr(this.data().data);
+    },
+    
     _rpgsToIntArr: function (rgbas) {
       var ints = new Array(rgbas.length >> 2);
       for (var i = 0, l = rgbas.length; i < l; i += 4) {
@@ -498,13 +514,14 @@
       this.requestFlip();
       
       if (this.options.trackChanges) {
-        var currentData = this._rpgsToIntArr(this.data().data);
+        var imageData = this.data();
+        var currentData = this._rpgsToIntArr(imageData.data);
         var delta = this._diffImageData(this._currentData, currentData);
         if (delta.length > 0) {
           this.element.trigger("offscreen.change", {
             delta: delta,
-            width: currentData.width,
-            height: currentData.height
+            width: imageData.width,
+            height: imageData.height
           });
         }
 
@@ -598,5 +615,203 @@
     }
   });
 
+
+  $.widget("custom.CoIllusionistCoOPS", {
+    options: {
+      serverUrl: null,
+      autoJoin: true,
+      algorithm: "uint2darr-lw",
+      protocolVersion: "1.0.0",
+      updateInterval: 500
+    },
+    _create : function() {
+      this._timer = null;
+      this._patches = [];
+      this._patching = false;
+      this._patchingPaused = false;
+      
+      this.element.on("join", $.proxy(this._onJoin, this));
+      this.element.on('offscreen.change', $.proxy(this._onOffscreenChange, this));
+      
+      if (this.options.autoJoin) {
+        this.join();
+      }
+    },
+    
+    join: function () {
+      // TODO: Proper error handling...
+      
+      $.ajax(this.options.serverUrl + '/join', {
+        data: {
+          'algorithm': this.options.algorithm,
+          'protocolVersion': this.options.protocolVersion
+        },
+        success: $.proxy(function (data) {
+          this.element.trigger("join", data);
+        }, this)
+      });
+    },
+    
+    _startUpdatePolling: function () {
+      this._pollUpdates();
+    },
+    
+    _stopUpdatePolling: function () {
+      if (this._timer) {
+        clearTimeout(this._timer);
+      }
+
+      this._timer = null;
+    },
+    
+    _addPatch: function (patch) {
+      this._patches.push(patch);
+      
+      if (this._patching === false) {
+        this._patching = true;
+        this._sendNextPatch();
+      }
+    },
+    
+    _sendNextPatch: function () {
+      if (this._patchingPaused) {
+        return;
+      }
+      
+      if (this._patches.length === 0) {
+        this._patching = false;
+      } else {
+        var patch = this._patches[0];
+        
+        // TODO: Proper error handling
+        $.ajax(this.options.serverUrl, {
+          data: {
+            patch: patch,
+            sessionId: this._sessionId,
+            revisionNumber: this._revisionNumber
+          },
+          type: 'PATCH',
+          accept: 'application/json',
+          complete: $.proxy(function (jqXHR) {
+            if (jqXHR.status === 204) {
+              this._patches.splice(0, 1);
+              this._pausePatching();
+            } else {
+              this._sendNextPatch();
+            }
+          }, this)
+        });
+      }
+    },
+    
+    _pausePatching: function () {
+      this._patchingPaused = true;
+    },
+    
+    _resumePatching: function () {
+      this._patchingPaused = false;
+      if (this._patching === true) {
+        this._sendNextPatch();
+      }
+    },
+    
+    _applyPatches: function (patches) {
+      var patch = patches.splice(0, 1)[0];
+      this._applyPatch(patch, $.proxy(function () {
+        if (patches.length > 0) {
+          this._applyPatches(patches);
+        }
+      }, this));
+    },
+    
+    _applyPatch: function (patch, callback) {
+      if (this._sessionId != patch.sessionId) {
+        // Received a patch from other client
+
+        var patchJson = JSON.parse(patch.patch);
+        var delta = patchJson.delta;
+        var width = patchJson.width;
+        var height = patchJson.height;
+        
+        $(this.element).CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
+          $.each(delta, function (key, value) {
+            var index = parseInt(key, 10);
+            var y = Math.floor(index / width);
+            var x = index - (y * width);
+            var v = delta[key];
+            
+            var r = (v & 4278190080) >>> 24;
+            var g = (v & 16711680) >>> 16;
+            var b = (v & 65280) >>> 8;
+            var a = (v & 255) >>> 0;
+
+            ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
+            ctx.fillRect(x, y, 1, 1);
+          });
+
+          $(this.element).CoIllusionist("resetChanges");
+          done();
+        }));
+        
+        this._revisionNumber = patch.revisionNumber;
+      } else {
+        // Our patch was accepted, yay!
+        this._revisionNumber = patch.revisionNumber;
+        this._resumePatching();
+      }
+    },
+    
+    _pollUpdates : function(event) {
+      // TODO: Proper error handling
+      $.ajax(this.options.serverUrl + '/update?revisionNumber=' + this._revisionNumber, {
+        complete: $.proxy(function (jqXHR) {
+          setTimeout($.proxy(this._pollUpdates, this), this.options.updateInterval);
+          
+          switch (jqXHR.status) {
+            case 200:
+              this._applyPatches(jqXHR.responseJSON);
+            break;
+            case 204:
+            case 304:
+              // Not modified
+            break;
+          }
+        }, this)
+      });
+    },
+    
+    _onJoin: function (event, data) {
+      this._revisionNumber = parseInt(data.revisionNumber, 10);
+      this._sessionId = data.sessionId;
+      var contentType = data.contentType;
+
+      var img = new Image();
+      img.onload = $.proxy(function () {
+        $(this.element).CoIllusionist('loadImage', img);
+        this._startUpdatePolling();
+      }, this);
+      
+      img.src = 'data:' + contentType + ';base64,' + data.content;
+    },
+    
+    _onOffscreenChange: function (event, data) {
+      var delta = data.delta;
+      var patch = {
+        width: data.width,
+        height: data.height,
+        delta: {}
+      };
+      
+      for (var i = 0, l = delta.length; i < l; i++) {
+        patch.delta[delta[i].index] = delta[i].to;
+      }
+      
+      var patchText = JSON.stringify(patch);
+      this._addPatch(patchText);
+    },
+    
+    _destroy : function() {
+    }
+  });
 
 }).call(this);
