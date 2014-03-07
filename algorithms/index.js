@@ -5,6 +5,8 @@
   var diffAlgorithms = [];
   
   broadwayApp.use( require("../plugins/dmp"), { diffAlgorithms: diffAlgorithms } );
+  broadwayApp.use( require("../plugins/uint2darr-lw"), { diffAlgorithms: diffAlgorithms } );
+  
   broadwayApp.init(function (err) {
     if (err) {
       console.log(err);
