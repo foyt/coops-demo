@@ -22,12 +22,12 @@
   module.exports.list = function (req, res) {
     var result = [];
     addListFiles(result, '/patterns');
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
     res.send(200, JSON.stringify(result));
   };
   
   module.exports.get = function (req, res) {
     var patternPath = req.params.path;
-    
     fs.readFile(__dirname + '/patterns/' + patternPath, function(err, data) {
       if (err) {
         res.send(500, err);
@@ -37,9 +37,6 @@
         res.end();
       }
     });
-        
-    
-   
   };
   
 }).call(this);
