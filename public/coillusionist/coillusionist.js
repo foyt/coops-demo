@@ -502,7 +502,9 @@
         var delta = this._diffImageData(this._currentData, currentData);
         if (delta.length > 0) {
           this.element.trigger("offscreen.change", {
-            delta: delta
+            delta: delta,
+            width: currentData.width,
+            height: currentData.height
           });
         }
 
@@ -527,7 +529,9 @@
     
     _flipToScreen: function () {
       this.element.trigger("screen.beforeflip");
-      var ctx = this._screen.get(0).getContext("2d");
+      var nativeScreen = this._screen.get(0);
+      var ctx = nativeScreen.getContext("2d");
+      ctx.clearRect(0, 0, nativeScreen.width, nativeScreen.height);
       ctx.drawImage(this._offscreen.get(0), 0, 0);
       this.element.trigger("screen.afterflip");
     },
