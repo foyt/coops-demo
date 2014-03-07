@@ -10,6 +10,7 @@
   var views = require('./views.js');
   var auth = require('./auth.js');
   var api = require('./api');
+  var patterns = require('./patterns.js');
 
   var app = express();
   var httpServer = null;
@@ -69,6 +70,13 @@
     app.get('/newdoc', [auth.loggedIn], views.newdoc);
     app.get('/editdoc/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editdoc);
     app.get('/editimg/:fileid', /**[auth.loggedIn, auth.ensureFileUser], **/ views.editimg);
+    
+    /** 
+     * Patterns (temporary) 
+     **/
+    
+    app.get('/patterns/', patterns.list);
+    app.get('/patterns/:path([a-z.-_/]*)', patterns.get);
     
     /**
      * Auth
