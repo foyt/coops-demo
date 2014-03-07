@@ -77,10 +77,17 @@
     
     _onScreenMouseDrag: function (event, data) {
       this._getCoIllusionist().CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
-        ctx.beginPath();
-        ctx.arc(data.screenX, data.screenY, this.size(), 0, 2 * Math.PI, false);
-        ctx.fill();
-        ctx.closePath();
+        ctx.save();
+        try {
+          this._getCoIllusionist().CoIllusionist("clipSelection", ctx);
+          ctx.beginPath();
+          ctx.arc(data.screenX, data.screenY, this.size(), 0, 2 * Math.PI, false);
+          ctx.fill();
+          ctx.closePath();
+        } finally {
+          ctx.restore();
+        }
+        
         done();
       }, this));
     },
@@ -187,7 +194,6 @@
         var ctx = this._offscreen.get(0).getContext("2d");
         this.element.trigger("offscreen.beforedraw");
         func(ctx, $.proxy(function () {
-          this._flipToScreen();
           this.element.trigger("offscreen.afterdraw");
         }, this));
       }
@@ -200,6 +206,17 @@
         func(ctx, $.proxy(function () {
           this.element.trigger("screen.afterdraw");
         }, this));
+      }
+    },
+    
+    clipSelection: function (ctx) {
+      var clipWidth = this._selection[2] - this._selection[0];
+      var clipHeight = this._selection[3] - this._selection[1];
+        
+      if ((clipWidth !== 0) && (clipHeight !== 0)) {
+        ctx.beginPath();
+        ctx.rect(this._selection[0], this._selection[1], clipWidth, clipHeight);
+        ctx.clip();
       }
     },
     
