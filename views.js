@@ -3,7 +3,8 @@
   var async = require('async');
   var ObjectId = require('mongojs').ObjectId;
   var _ = require('underscore');
-
+  var Canvas = require('canvas');
+  var Image = Canvas.Image;
   var db = require('./db');
   var packageJson = require('./package.json');
   
@@ -91,7 +92,25 @@
     }
   };
   
-  module.exports.editimg= function (req, res) {
+  module.exports.newimg = function (req, res) {
+    var canvas = new Canvas(800, 800);
+    
+    db.files.insert({ revisionNumber: 0, content: canvas.toBuffer(), contentType: 'image/png;editor=CoIllusionist', properties: { title: 'Untitled', width: canvas.width, height: canvas.height } }, function(err, file) {
+      if (err) {
+        res.send(err, 500);
+      } else {
+        db.fileusers.insert({ fileId: file._id, userId: req.user._id, role: "OWNER" }, function (usersErr, fileUsers) {
+          if (usersErr) {
+            res.send(usersErr, 500);
+          } else {
+            res.redirect('/editimg/' + file._id.toString());
+          }
+        });
+      }
+    });
+  };
+  
+  module.exports.editimg = function (req, res) {
     var fileId = req.params.fileid;
     if (!fileId) {
       res.send("Not Found", 404);
@@ -106,8 +125,31 @@
             res.render('editimg', {
               title : 'Edit image',
               loggedUser: req.user,
-              file: file
+              file: file,
+              content: '/viewimg/' + fileId
             });
+            
+          }
+        }
+      });
+    }
+  };
+  
+  module.exports.viewimg = function (req, res) {
+    var fileId = req.params.fileid;
+    if (!fileId) {
+      res.send("Not Found", 404);
+    } else {
+      db.files.findOne({ _id: new ObjectId(fileId.toString()) }, function(err, file) {
+        if (err) {
+          res.send(err, 500);
+        } else {
+          if (!file) {
+            res.send("Not Found", 404);
+          } else {
+            res.writeHead(200, { 'Content-Type' : file.contentType });
+            res.write(file.content.buffer);
+            res.end();
           }
         }
       });

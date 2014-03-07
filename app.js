@@ -69,7 +69,9 @@
     app.get('/about', views.about);
     app.get('/newdoc', [auth.loggedIn], views.newdoc);
     app.get('/editdoc/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editdoc);
-    app.get('/editimg/:fileid', /**[auth.loggedIn, auth.ensureFileUser], **/ views.editimg);
+    app.get('/newimg', [auth.loggedIn], views.newimg);
+    app.get('/editimg/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editimg);
+    app.get('/viewimg/:fileid', [auth.loggedIn ], views.viewimg);
     
     /** 
      * Patterns (temporary) 
