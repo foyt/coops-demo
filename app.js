@@ -68,6 +68,7 @@
     app.get('/about', views.about);
     app.get('/newdoc', [auth.loggedIn], views.newdoc);
     app.get('/editdoc/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editdoc);
+    app.get('/editimg/:fileid', /**[auth.loggedIn, auth.ensureFileUser], **/ views.editimg);
     
     /**
      * Auth

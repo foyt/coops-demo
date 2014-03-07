@@ -91,4 +91,27 @@
     }
   };
   
+  module.exports.editimg= function (req, res) {
+    var fileId = req.params.fileid;
+    if (!fileId) {
+      res.send("Not Found", 404);
+    } else {
+      db.files.findOne({ _id: new ObjectId(fileId.toString()) }, function(err, file) {
+        if (err) {
+          res.send(err, 500);
+        } else {
+          if (!file) {
+            res.send("Not Found", 404);
+          } else {
+            res.render('editimg', {
+              title : 'Edit image',
+              loggedUser: req.user,
+              file: file
+            });
+          }
+        }
+      });
+    }
+  };
+  
 }).call(this);

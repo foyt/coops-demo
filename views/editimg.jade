@@ -1,0 +1,28 @@
+extend layout
+block head
+  link(rel='stylesheet', href='/coillusionist/css/coillusionist.css')
+  link(rel='stylesheet', href='/css/editimg.css')
+  script(type="text/javascript",src="/pixastic/pixastic.js")
+  script(type="text/javascript",src="/coillusionist/coillusionist.js")
+  script(type="text/javascript",src="/editimg.js")
+block header
+  div(class="index-container")
+    a(href="/")
+      |Index
+  div(class="about-container")
+    a(href="/about")
+      |About
+block content
+  div(class="editor-header")
+    span(class="editor-status")
+      |Initializing...
+    h2
+      span
+        |#{title}
+  p(class="info-text")
+    |You can edit this image with your friends
+  div(class="editor")
+    div(id="title-container")
+      input(type="text", name="name", value="#{file.properties.title}")
+    div(id="image-container")
+      img(class="co-illusionist-image", src="/example.jpg")
