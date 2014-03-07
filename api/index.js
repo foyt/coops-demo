@@ -73,7 +73,7 @@
                     // TODO: Extensions
                     patches.push({
                       "sessionId": fileRevision.sessionId,
-                      "revisionNumber": fileRevision.revisionNumber,
+                      "revisionNumber": parseInt(fileRevision.revisionNumber, 10),
                       "checksum": fileRevision.checksum,
                       "patch": fileRevision.patch,
                       "properties": fileRevision.properties,
@@ -133,7 +133,7 @@
             if (err) {
               res.send(err, 500);
             } else {
-              if (file.revisionNumber !== reqBody.revisionNumber) {
+              if (file.revisionNumber != reqBody.revisionNumber) {
                 res.send("Server version does not match client version", 409);
               } else {
                 var patchRevisionNumber = file.revisionNumber + 1;
@@ -234,7 +234,7 @@
                   res.send(200, JSON.stringify({
                     "sessionId": session._id,
                     "algorithm": session.algorithm,
-                    "revisionNumber": file.revisionNumber,
+                    "revisionNumber": parseInt(file.revisionNumber, 10),
                     "content": file.content,
                     "contentType": file.contentType,
                     "properties": file.properties,
