@@ -1,3 +1,4 @@
+@import "compass/css3";
 @import "fonts.scss";
 
 $transparent-background: url("data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAwAAAAMCAIAAADZF8uwAAAAGUlEQVQYV2M4gwH+YwCGIasIUwhT25BVBADtzYNYrHvv4gAAAABJRU5ErkJggg==");
@@ -57,6 +58,10 @@ $paintbar-button-margin: 5px;
 .co-illusionist-tool:hover {
   background: #444;
   border: 1px solid #333;
+}
+
+.co-illusionist-tool-load:before {
+  @extend .icon-folder-open:before;
 }
 
 .co-illusionist-tool-pencil:before {
@@ -194,4 +199,17 @@ $paintbar-button-margin: 5px;
 
 .co-illusionist-tool-filter-dialog select {
   display: block; 
+}
+
+.co-illusionist-tool-load-dialog label {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  display: block;
+}
+
+.co-illusionist-tool-load-dialog input[name="url"] {
+  display: block; 
+  width: 100%;
+  @include box-sizing(border-box); 
 }

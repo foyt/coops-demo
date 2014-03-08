@@ -71,7 +71,7 @@
     app.get('/editdoc/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editdoc);
     app.get('/newimg', [auth.loggedIn], views.newimg);
     app.get('/editimg/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editimg);
-    app.get('/viewimg/:fileid', [auth.loggedIn ], views.viewimg);
+    app.get('/loadimg', [auth.loggedIn], views.loadImage);
     
     /** 
      * Patterns (temporary) 

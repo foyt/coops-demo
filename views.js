@@ -1,5 +1,7 @@
 (function() {
   
+  var http = require('http');
+  var url = require('url');
   var async = require('async');
   var ObjectId = require('mongojs').ObjectId;
   var _ = require('underscore');
@@ -134,25 +136,26 @@
     }
   };
   
-  module.exports.viewimg = function (req, res) {
-    var fileId = req.params.fileid;
-    if (!fileId) {
-      res.send("Not Found", 404);
-    } else {
-      db.files.findOne({ _id: new ObjectId(fileId.toString()) }, function(err, file) {
-        if (err) {
-          res.send(err, 500);
-        } else {
-          if (!file) {
-            res.send("Not Found", 404);
-          } else {
-            res.writeHead(200, { 'Content-Type' : file.contentType });
-            res.write(file.content.buffer);
-            res.end();
-          }
-        }
-      });
-    }
+  module.exports.loadImage = function (req, res) {
+    
+    http.get(url.parse(req.query.src), function(httpRes) {
+      var data = [];
+      
+      httpRes
+        .on('data', function(chunk) {
+          data.push(chunk);
+        })
+        .on('end', function() {
+          var buffer = new Buffer(data.reduce(function(prev, current) {
+            return prev.concat(Array.prototype.slice.call(current));
+          }, []));
+          
+          res.writeHead(200, { 'Content-Type' : httpRes.headers.contentType });
+          res.write(buffer);
+          res.end();
+        });
+      
+    });
   };
   
 }).call(this);

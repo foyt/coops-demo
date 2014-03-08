@@ -106,6 +106,55 @@
     _destroy : function() {
     }
   });
+
+  $.widget("custom.CoIllusionistToolLoad", {
+    _create : function() {
+      this.element
+      .CoIllusionistTool({
+        activate: $.proxy(this._onActivate, this)
+      })
+      .addClass('co-illusionist-tool-load');
+    },
+    
+    _getCoIllusionist: function () {
+       return this.element.closest('.co-illusionist');
+    },
+
+    _onActivate: function () {
+      this.element.CoIllusionistTool("deactivate");
+      
+      var dialog = $('<div>')
+        .addClass('co-illusionist-tool-load-dialog')
+        .attr('title', 'Load Image')
+        .append($('<label>').text('URL:'))
+        .append($('<input>').attr('name', 'url'))
+        .dialog({
+          modal: true,
+          width: 500,
+          buttons: {
+            'Open': $.proxy(function () {
+              this._loadImage($(dialog).find('input[name="url"]').val());
+              $(dialog).dialog('close');
+            }, this),
+            'Cancel': function () {
+              $(dialog).dialog('close');
+            }
+          }
+        });
+    },
+    
+    _loadImage: function (url) {
+      var img = new Image();
+      img.onload = $.proxy(function () {
+        this._getCoIllusionist().CoIllusionist('loadImage', img);
+      }, this);
+      
+      img.src = '/loadimg?src=' + url;
+    },
+    
+    _destroy : function() {
+    }
+  });
   
   $.widget("custom.CoIllusionistToolPencil", {
     _create : function() {
@@ -302,7 +351,6 @@
     _destroy : function() {
     }
   });
-  
 
   $.widget("custom.CoIllusionistPaintButton", {
     options : {},
@@ -559,6 +607,7 @@
       
       this._toolbar = $('<div>')
         .CoIllusionistToolbar()
+        .append($('<div>').CoIllusionistToolLoad())
         .append($('<div>').CoIllusionistToolPencil())
         .append($('<div>').CoIllusionistToolSelectRect())
         .append($('<div>').CoIllusionistToolFilter())
