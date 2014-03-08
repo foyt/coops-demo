@@ -223,6 +223,85 @@
     _destroy : function() {
     }
   });
+
+  $.widget("custom.CoIllusionistToolFilter", {
+    _create : function() {
+      this.element
+      .CoIllusionistTool({
+        activate: $.proxy(this._onActivate, this)
+      })
+      .addClass('co-illusionist-tool-filter');
+    },
+    
+    _getCoIllusionist: function () {
+       return this.element.closest('.co-illusionist');
+    },
+
+    _onActivate: function () {
+      this.element.CoIllusionistTool("deactivate");
+      
+      var filterSelect = $('<select>')
+          .attr('name', 'filter');
+      
+      $.each({
+        'blur': { text: 'Blur' },
+        'desaturate': { text: 'Desaturate' },
+        'edges': { text: 'Edge Detection' },
+        'edges2': { text: 'Edge Detection 2' },
+        'invert': { text: 'Invert' },
+        'removenoise': { text: 'Remove Noise' },
+        'sepia': { text: 'Sepia' },
+        'solarize': { text: 'Solarize' } },
+      $.proxy(function (filter, options) {
+        $(this).append($('<option>').attr('value', filter).text(options.text));
+      }, filterSelect));
+      
+      var dialog = $('<div>')
+        .addClass('co-illusionist-tool-filter-dialog')
+        .attr('title', 'Apply Filter')
+        .append($('<label>').text('Apply filter:'))
+        .append(filterSelect)
+        .dialog({
+          modal: true,
+          buttons: {
+            'Apply': $.proxy(function () {
+              this._applyFilter($(dialog).find('select[name="filter"]').val());
+              $(dialog).dialog('close');
+            }, this),
+            'Cancel': function () {
+              $(dialog).dialog('close');
+            }
+          }
+        });
+    },
+    
+    _applyFilter: function (filter) {
+      var coIllusionist = this._getCoIllusionist();
+      
+      coIllusionist.CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
+        var selection = coIllusionist.CoIllusionist("clipSelection", ctx);
+        
+        var options = {
+          resultCanvas: ctx.canvas
+        };
+        
+        if (selection && !selection.empty()) {
+          options.rect = {
+            "left" : selection.x(),
+            "top" : selection.y(),
+            "width" : selection.width(),
+            "height" : selection.height()
+          };
+        }
+        
+        Pixastic.process(ctx.canvas, filter, options);
+        done(selection);
+      }, this));
+    },
+    
+    _destroy : function() {
+    }
+  });
   
 
   $.widget("custom.CoIllusionistPaintButton", {
@@ -482,6 +561,7 @@
         .CoIllusionistToolbar()
         .append($('<div>').CoIllusionistToolPencil())
         .append($('<div>').CoIllusionistToolSelectRect())
+        .append($('<div>').CoIllusionistToolFilter())
         .appendTo(this.element);
       
       this.element.append($('<div>').CoIllusionistPaintBar());

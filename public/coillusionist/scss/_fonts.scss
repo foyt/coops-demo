@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'icomoon';
-  src:url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.eot?fqeot2');
-  src:url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.eot?#iefixfqeot2') format('embedded-opentype'),
-    url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.woff?fqeot2') format('woff'),
-    url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.ttf?fqeot2') format('truetype'),
-    url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.svg?fqeot2#icomoon') format('svg');
+  src:url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.eot?h1nj7b');
+  src:url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.eot?#iefixh1nj7b') format('embedded-opentype'),
+    url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.woff?h1nj7b') format('woff'),
+    url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.ttf?h1nj7b') format('truetype'),
+    url('http://i.icomoon.io/public/temp/1801d5244f/CoIllusionist/icomoon.svg?h1nj7b#icomoon') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -23,12 +23,15 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+.icon-rect-select:before {
+  content: "\e600";
+}
 .icon-pencil:before {
   content: "\e601";
 }
 .icon-pencil2:before {
   content: "\e602";
 }
-.icon-rect-select:before {
-  content: "\e600";
+.icon-wand:before {
+  content: "\e603";
 }

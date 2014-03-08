@@ -67,6 +67,10 @@ $paintbar-button-margin: 5px;
   @extend .icon-rect-select:before;
 }
 
+.co-illusionist-tool-filter:before {
+  @extend .icon-wand:before;
+}
+
 .co-illusionist-paintbar {
   position: absolute;
   width: $paintbar-width;
@@ -179,4 +183,15 @@ $paintbar-button-margin: 5px;
   max-height: 32px;
   vertical-align: middle; 
   cursor: pointer;
+}
+
+.co-illusionist-tool-filter-dialog label {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  font-weight: bold;
+  display: block;
+}
+
+.co-illusionist-tool-filter-dialog select {
+  display: block; 
 }
