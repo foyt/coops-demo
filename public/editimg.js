@@ -12,7 +12,10 @@
       .appendTo($('#image-container'))
       .CoIllusionist({
         trackChanges: true,
-        serverUrl: serverUrl
+        serverUrl: serverUrl,
+        debug: {
+          showAffectedArea: false
+        }
       });
   });
 

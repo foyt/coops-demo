@@ -1,6 +1,81 @@
 (function() {
   'use strict';
   
+  function Rect2D(x, y, width, height) {
+    this.val(x, y, width, height);
+  }
+  
+  jQuery.extend(Rect2D.prototype, {
+    val: function (x, y, width, height) {
+      if (arguments.length === 4) {
+        this.x(x);
+        this.y(y);
+        this.width(width);
+        this.height(height);
+      } else {
+        return {
+          x: this.x(),
+          y: this.y(),
+          width: this.width(),
+          height: this.height()
+        };
+      }
+    },
+    x: function () {
+      if (arguments.length === 1) {
+        this._x = Math.floor(arguments[0]);
+      }
+      return this._x;
+    },
+    y: function () {
+      if (arguments.length === 1) {
+        this._y = Math.floor(arguments[0]);
+      }
+      return this._y;
+    },
+    width: function () {
+      if (arguments.length === 1) {
+        this._width = Math.max(0, Math.ceil(arguments[0]));
+      }
+      return this._width;
+    },
+    height: function () {
+      if (arguments.length === 1) {
+        this._height = Math.max(0, Math.ceil(arguments[0]));
+      }
+      return this._height;
+    },
+    x2: function () {
+      if (arguments.length === 1) {
+        this.width(arguments[0] - this.x());
+      }
+      return this.width() + this.x();
+    },
+    y2: function () {
+      if (arguments.length === 1) {
+        this.height(arguments[0] - this.y());
+      }
+      return this.height() + this.y();
+    },
+    empty: function () {
+      return (this.width() === 0) && (this.height() === 0);
+    },
+    cut: function (r) {
+      if (r.x() > this.x()) {
+        this.width(this.width() - (r.x() - this.x()));
+        this.x(r.x());
+      }
+      
+      if (r.y() > this.y()) {
+        this.height(this.height() - (r.y() - this.y()));
+        this.y(r.y());
+      }
+
+      this.x2(Math.min(this.x2(), r.x2()));
+      this.y2(Math.min(this.y2(), r.y2()));
+    }
+  });
+  
   $.widget("custom.CoIllusionistTool", {
     options : {},
     _create : function() {
@@ -77,20 +152,30 @@
     
     _onScreenMouseDrag: function (event, data) {
       this._getCoIllusionist().CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
+        var affectedArea = null;
+        
         ctx.save();
         try {
-          this._getCoIllusionist().CoIllusionist("clipSelection", ctx);
+          var size = this.size();
+          var radius = this.size() / 2;
+          
+          var selection = this._getCoIllusionist().CoIllusionist("clipSelection", ctx);
           this._getCoIllusionist().CoIllusionist("applyPaint", ctx);
           
+          affectedArea = new Rect2D(data.screenX - radius, data.screenY - radius, size, size);
+          if (selection && !selection.empty()) {
+            affectedArea.cut(selection);
+          }
+          
           ctx.beginPath();
-          ctx.arc(data.screenX, data.screenY, this.size(), 0, 2 * Math.PI, false);
+          ctx.arc(data.screenX, data.screenY, radius, 0, 2 * Math.PI, false);
           ctx.fill();
           ctx.closePath();
         } finally {
           ctx.restore();
         }
         
-        done();
+        done(affectedArea);
       }, this));
     },
     
@@ -365,11 +450,14 @@
     options : {
       image: null,
       trackChanges: false,
-      serverUrl: null
+      serverUrl: null,
+      debug: {
+        showAffectedArea: false
+      }
     },
     _create : function() {
       this._mouseDown = false;
-      this._selection = [0, 0, 0, 0];
+      this._selection = new Rect2D(0, 0, 0, 0);
       this._currentdata = null;
       
       this.element.addClass('co-illusionist');
@@ -427,10 +515,17 @@
     
     drawOffscreen: function (func) {
       if (func) {
-        var ctx = this._offscreen.get(0).getContext("2d");
+        var nativeOffscreen = this._offscreen.get(0);
+        var ctx = nativeOffscreen.getContext("2d");
         this.element.trigger("offscreen.beforedraw");
-        func(ctx, $.proxy(function () {
-          this.element.trigger("offscreen.afterdraw");
+        func(ctx, $.proxy(function (affectedArea) {
+          if (affectedArea) {
+            affectedArea.cut(new Rect2D(0, 0, nativeOffscreen.width, nativeOffscreen.height));
+          }
+          
+          this.element.trigger("offscreen.afterdraw", {
+            affectedArea: affectedArea
+          });
         }, this));
       }
     },
@@ -446,14 +541,16 @@
     },
     
     clipSelection: function (ctx) {
-      var clipWidth = this._selection[2] - this._selection[0];
-      var clipHeight = this._selection[3] - this._selection[1];
+      var clipWidth = this._selection.width();
+      var clipHeight = this._selection.height();
         
       if ((clipWidth !== 0) && (clipHeight !== 0)) {
         ctx.beginPath();
-        ctx.rect(this._selection[0], this._selection[1], clipWidth, clipHeight);
+        ctx.rect(this._selection.x(), this._selection.y(), clipWidth, clipHeight);
         ctx.clip();
       }
+      
+      return this._selection;
     },
     
     applyPaint: function (ctx) {
@@ -467,10 +564,10 @@
     selection: function (selection) {
       if (selection) {
         if (selection.length === 4) {
-          this._selection = selection;
+          this._selection.val(selection[0], selection[1], selection[2] - selection[0], selection[3] - selection[1]);// = new Rect2D(selection[0], selection[1], selection[0] + selection[2], selection[1] + selection[3]);
         } else if (selection.length === 2) {
-          this._selection[2] = selection[0];
-          this._selection[3] = selection[1];
+          this._selection.x2(selection[0]);
+          this._selection.y2(selection[1]);
         }
         
         this.element.trigger("selection.change", {
@@ -488,9 +585,14 @@
       return ctx.createPattern(image, "repeat");
     },
     
-    data: function () {
+    data: function (area) {
       var ctx = this._offscreen.get(0).getContext("2d");
-      return ctx.getImageData(0, 0, this._offscreen.get(0).width, this._offscreen.get(0).height);
+      var x = area ? area.x() : 0;
+      var y = area ? area.y() : 0;
+      var width = area ? area.width() : this._offscreen.get(0).width;
+      var height = area ? area.height() : this._offscreen.get(0).height;
+
+      return ctx.getImageData(x, y, width, height);
     },
     
     resetChanges: function () {
@@ -510,22 +612,57 @@
 
     },
     
-    _onOffscreenAfterDraw: function () {
+    _onOffscreenAfterDraw: function (event, data) {
       this.requestFlip();
       
       if (this.options.trackChanges) {
-        var imageData = this.data();
-        var currentData = this._rpgsToIntArr(imageData.data);
-        var delta = this._diffImageData(this._currentData, currentData);
-        if (delta.length > 0) {
-          this.element.trigger("offscreen.change", {
-            delta: delta,
-            width: imageData.width,
-            height: imageData.height
-          });
+        var delta = null;
+        var width = null;
+        var height = null;
+        
+        if (!data.affectedArea) {
+          var imageData = this.data();
+          var currentData = this._rpgsToIntArr(imageData.data);
+          delta = this._diffImageData(this._currentData, currentData);
+          this._currentData = currentData;
+          width = imageData.width;
+          height = imageData.height;
+        } else {
+          if (this.options.debug && this.options.debug.showAffectedArea) {
+            var ctx = this._screen.get(0).getContext("2d");
+            ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+            ctx.fillRect(data.affectedArea.x(), data.affectedArea.y(), data.affectedArea.width(), data.affectedArea.height());
+          }
+          
+          if (!data.affectedArea.empty()) {
+            var areaImageData = this.data(data.affectedArea);
+            var areaData = this._rpgsToIntArr(areaImageData.data);
+            width = this._offscreen.get(0).width;
+            height = this._offscreen.get(0).height;
+            delta = [];
+            
+            for (var x = 0, w = data.affectedArea.width(); x < w; x++) {
+              for (var y = 0, h = data.affectedArea.height(); y < h; y++) {
+                var areaIndex = x + (y * w);
+                var dataIndex = (x + data.affectedArea.x()) + ((y + data.affectedArea.y()) * width);
+                var d1 = areaData[areaIndex];
+                var d2 = this._currentData[dataIndex];
+                if (d1 !== d2) {
+                  delta.push({ index: dataIndex, from: d1, to: d2 });
+                  this._currentData[dataIndex] = d2;
+                }
+              }
+            }
+          }
         }
 
-        this._currentData = currentData;
+        if ((delta !== null) && (delta.length > 0)) {
+          this.element.trigger("offscreen.change", {
+            delta: delta,
+            width: width,
+            height: height
+          });
+        }
       }
     },
     
@@ -543,7 +680,7 @@
       
       return delta;
     },
-    
+
     _flipToScreen: function () {
       this.element.trigger("screen.beforeflip");
       var nativeScreen = this._screen.get(0);
@@ -596,17 +733,19 @@
     
     _onScreenAfterFlip: function (event, data) {
       this.drawScreen($.proxy(function (ctx, done) {
-        var width = this._selection[2] - this._selection[0];
-        var height = this._selection[3] - this._selection[1];
+        var x = this._selection.x();
+        var y = this._selection.y();
+        var width = this._selection.width();
+        var height = this._selection.height();
         
-        var gradient = ctx.createLinearGradient(this._selection[0], this._selection[1], width, height);
+        var gradient = ctx.createLinearGradient(x, y, width, height);
         gradient.addColorStop("0", "rgba(0, 0, 0, 0.1)");
         gradient.addColorStop("1", "rgba(0, 0, 0, 1)");
         ctx.strokeStyle = gradient;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         ctx.lineWidth = 1;
-        ctx.strokeRect(this._selection[0], this._selection[1], width, height);
-        ctx.fillRect(this._selection[0], this._selection[1], width, height);
+        ctx.strokeRect(x, y, width, height);
+        ctx.fillRect(x, y, width, height);
         done();
       }, this));
     },
@@ -681,7 +820,7 @@
       if (this._patches.length === 0) {
         this._patching = false;
       } else {
-        var patch = this._patches[0];
+        var patch = this._mergePatches();
         
         // TODO: Proper error handling
         $.ajax(this.options.serverUrl, {
@@ -702,6 +841,30 @@
           }, this)
         });
       }
+    },
+    
+    _mergePatches: function () {
+      if (this._patches.length === 1) {
+        return this._patches[0];
+      }
+      
+      var mergedJson = JSON.parse(this._patches[0]);
+      var deltaMerge = function (key, value) {
+        mergedJson.delta[key] = value;
+      };
+      
+      while (this._patches.length > 1) {
+        // TODO: Handle conflicting width / height
+
+        var patch = this._patches.splice(1, 1);
+        var patchJson = JSON.parse(patch);
+        var delta = patchJson.delta;
+        
+        $.each(delta, deltaMerge);
+      }
+      
+      this._patches[0] = JSON.stringify(mergedJson);
+      return this._patches[0];
     },
     
     _pausePatching: function () {
