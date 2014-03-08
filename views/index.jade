@@ -38,13 +38,19 @@ block content
       each file in files
         if file.contentType == 'text/html;editor=CKEditor'
           a(class="file-list-item file-list-item-document",href="/editdoc/#{file._id}")
-            = file.properties.title
-        if file.contentType == 'image/png;editor=CoIllusionist'
+            span(class="file-list-item-icon")  
+            span
+              = file.properties.title
+        else if file.contentType == 'image/png;editor=CoIllusionist'
           a(class="file-list-item file-list-item-image",href="/editimg/#{file._id}")
-            = file.properties.title
+            span(class="file-list-item-icon")  
+            span
+              = file.properties.title
         else
           a(class="file-list-item file-list-item-unknown",href="javascript:alert('#{file._id} type is unknown')",data-content-type="#{file.contentType}")
-            = file.properties.title
+            span(class="file-list-item-icon")  
+            span
+              = file.properties.title
   else
     h3
       |Your files

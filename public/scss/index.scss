@@ -1,0 +1,57 @@
+@import "fonts.scss";
+
+.view-image {
+  position: absolute;
+  width: 128px;
+  height: 128px;
+  right: -92px;
+}
+
+.create-container {
+  margin-top: 40px;
+  margin-bottom: 40px;
+}
+
+.create-container a {
+  background: #333;
+  color: #fff;
+  text-decoration:none;
+  padding: 20px;
+  border-radius: 8px;
+  margin-right: 20px;
+  font-variant: small-caps; 
+}
+
+.create-container a:hover {
+  background: #000;
+}
+
+.file-list a {
+  display: block;
+  color: #000;
+  text-decoration: none;
+  margin-bottom: 5px;
+  border-radius: 4px;
+  background: #ddd;
+  padding-top: 5px;
+  padding-bottom: 5px;
+  padding-left: 10px;
+}
+
+.file-list a:hover {
+  background: #ccc;
+}
+
+.file-list-item-icon {
+  @extend [class^="icon-"];
+  vertical-align: top;
+  font-size: 18px;
+}
+
+.file-list-item-document .file-list-item-icon:before {
+  @extend .icon-file:before 
+}
+
+.file-list-item-image .file-list-item-icon:before {
+  @extend .icon-image:before
+}
