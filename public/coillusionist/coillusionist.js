@@ -646,6 +646,7 @@
       image: null,
       trackChanges: false,
       serverUrl: null,
+      maxPatchDelta: 1024,
       debug: {
         showAffectedArea: false
       }
@@ -693,7 +694,8 @@
       
       if (this.options.serverUrl) {
         $(this.element).CoIllusionistCoOPS({
-          serverUrl: this.options.serverUrl
+          serverUrl: this.options.serverUrl,
+          maxPatchDelta: this.options.maxPatchDelta
         });
       }
     },
@@ -720,6 +722,7 @@
       }
       
       this.drawOffscreen($.proxy(function (ctx, done) {
+        ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
         ctx.drawImage(image, 0, 0);
         if (this.options.trackChanges && resetChanges) {
           this.resetChanges();
@@ -1011,7 +1014,8 @@
       autoJoin: true,
       algorithm: "uint2darr-lw",
       protocolVersion: "1.0.0",
-      updateInterval: 500
+      updateInterval: 200,
+      maxPatchDelta: 1024
     },
     _create : function() {
       this._timer = null;
@@ -1052,10 +1056,11 @@
       this._timer = null;
     },
     
-    _addPatch: function (delta, properties) {
+    _addPatch: function (delta, properties, patchSize) {
       this._patches.push({
         delta: delta,
-        properties: properties
+        properties: properties,
+        patchSize: patchSize
       });
       
       if (this._patching === false) {
@@ -1107,9 +1112,12 @@
       
       while (this._patches.length > 1) {
         var patch = this._patches[1];
-        if ((patch.delta) && (!patch.properties)) {
+        if ((!patch.properties) && ((patch.patchSize + this._patches[0].patchSize) <= this.options.maxPatchDelta)) {
           $.each(patch.delta, deltaMerge);
+          this._patches[0].patchSize += patch.patchSize;
           this._patches.splice(1, 1);
+        } else {
+          return this._patches[0];
         }
       }
       
@@ -1156,7 +1164,7 @@
               var index = parseInt(key, 10);
               var y = Math.floor(index / width);
               var x = index - (y * width);
-              var v = delta[key];
+              var v = patchJson[key];
               
               var r = (v & 4278190080) >>> 24;
               var g = (v & 16711680) >>> 16;
@@ -1217,21 +1225,34 @@
     
     _onOffscreenChange: function (event, data) {
       var delta = data.delta;
-      var patch = {
-      };
+      var deltaLength = delta.length;
+      var patch = {};
+      var changed = false;
+      var i = 0;
+      var patchSize = 0;
       
-      for (var i = 0, l = delta.length; i < l; i++) {
+      while (i < deltaLength) {
+        if (patchSize >= this.options.maxPatchDelta) {
+          this._addPatch(patch, null, patchSize);
+          patch = {};
+          patchSize = 0;
+        }
+        
         patch[delta[i].index] = delta[i].to;
+        patchSize++;
+        i++;
       }
       
-      this._addPatch(patch, null);
+      if (patchSize > 0) {
+        this._addPatch(patch, null, patchSize);
+      }
     },
     
     _onOffscreenResize: function (event, data) {
       this._addPatch(null, {
         width: data.width,
         height: data.height
-      });
+      }, 0);
     },
     
     _destroy : function() {
