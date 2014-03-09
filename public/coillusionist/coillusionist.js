@@ -153,7 +153,7 @@
         this._getCoIllusionist().CoIllusionist('loadImage', img);
       }, this);
       
-      img.src = '/loadimg?src=' + url;
+      img.src = '/loadimg?src=' + encodeURIComponent(url);
     },
     
     _destroy : function() {
@@ -728,6 +728,31 @@
       }, this));
     },
     
+    resizeCanvas: function (width, height, triggerEvent) {
+      var nativeOffscreen = this._offscreen.get(0);
+      
+      width = width||nativeOffscreen.width;
+      height = height||nativeOffscreen.height;
+      
+      if ((nativeOffscreen.width !== width) || (nativeOffscreen.height !== height)) {
+        var data = {};
+        if (nativeOffscreen.width !== width) {
+          data.width = width;
+        }
+
+        if (nativeOffscreen.height !== height) {
+          data.height = height;
+        }
+        
+        this._offscreen.attr(data);
+        this._screen.attr(data);
+        
+        if (triggerEvent !== false) {
+          this.element.trigger("offscreen.resize", data);
+        }
+      }
+    },
+    
     drawOffscreen: function (func) {
       if (func) {
         var nativeOffscreen = this._offscreen.get(0);
@@ -1114,31 +1139,38 @@
     _applyPatch: function (patch, callback) {
       if (this._sessionId != patch.sessionId) {
         // Received a patch from other client
-
-        var patchJson = JSON.parse(patch.patch);
-        var delta = patchJson.delta;
-        var width = patchJson.width;
-        var height = patchJson.height;
         
-        $(this.element).CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
-          $.each(delta, function (key, value) {
-            var index = parseInt(key, 10);
-            var y = Math.floor(index / width);
-            var x = index - (y * width);
-            var v = delta[key];
+        if (patch.properties) {
+          if (patch.properties.width||patch.properties.height) {
+            $(this.element).CoIllusionist("resizeCanvas", patch.properties.width, patch.properties.height, false);
+          }
+        }
+
+        if (patch.patch) {
+          var patchJson = JSON.parse(patch.patch);
+          
+          $(this.element).CoIllusionist("drawOffscreen", $.proxy(function (ctx, done) {
+            var width = ctx.canvas.width;
             
-            var r = (v & 4278190080) >>> 24;
-            var g = (v & 16711680) >>> 16;
-            var b = (v & 65280) >>> 8;
-            var a = (v & 255) >>> 0;
-
-            ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
-            ctx.fillRect(x, y, 1, 1);
-          });
-
-          $(this.element).CoIllusionist("resetChanges");
-          done();
-        }, this));
+            $.each(patchJson, function (key, value) {
+              var index = parseInt(key, 10);
+              var y = Math.floor(index / width);
+              var x = index - (y * width);
+              var v = delta[key];
+              
+              var r = (v & 4278190080) >>> 24;
+              var g = (v & 16711680) >>> 16;
+              var b = (v & 65280) >>> 8;
+              var a = (v & 255) >>> 0;
+  
+              ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
+              ctx.fillRect(x, y, 1, 1);
+            });
+  
+            $(this.element).CoIllusionist("resetChanges");
+            done();
+          }, this));
+        }
         
         this._revisionNumber = patch.revisionNumber;
       } else {
