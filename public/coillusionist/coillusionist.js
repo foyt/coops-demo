@@ -688,7 +688,7 @@
       this.element.append($('<div>').CoIllusionistPaintBar());
       
       if (this.options.image) {
-        this.loadImage(this.options.image);
+        this.loadImage(this.options.image, true);
       }
       
       if (this.options.serverUrl) {
@@ -698,16 +698,30 @@
       }
     },
     
-    loadImage: function (image) {
+    loadImage: function (image, resetChanges) {
       var width = image.width;
       var height = image.height;
-
-      this._offscreen.attr({ width: width, height: height });
-      this._screen.attr({ width: width, height: height });
+      var nativeOffscreen = this._offscreen.get(0);
+      
+      if ((nativeOffscreen.width !== image.width) || (nativeOffscreen.height !== image.height)) {
+        var data = {};
+        
+        if (nativeOffscreen.width !== image.width) {
+          data.width = image.width;
+        }
+        
+        if (nativeOffscreen.height !== image.height) {
+          data.height = image.height;
+        }
+        
+        this._offscreen.attr(data);
+        this._screen.attr(data);
+        this.element.trigger("offscreen.resize", data);
+      }
       
       this.drawOffscreen($.proxy(function (ctx, done) {
         ctx.drawImage(image, 0, 0);
-        if (this.options.trackChanges) {
+        if (this.options.trackChanges && resetChanges) {
           this.resetChanges();
         }
         done();
@@ -981,7 +995,6 @@
       this._patchingPaused = false;
       
       this.element.on("join", $.proxy(this._onJoin, this));
-      this.element.on('offscreen.change', $.proxy(this._onOffscreenChange, this));
       
       if (this.options.autoJoin) {
         this.join();
@@ -1014,8 +1027,11 @@
       this._timer = null;
     },
     
-    _addPatch: function (patch) {
-      this._patches.push(patch);
+    _addPatch: function (delta, properties) {
+      this._patches.push({
+        delta: delta,
+        properties: properties
+      });
       
       if (this._patching === false) {
         this._patching = true;
@@ -1036,7 +1052,8 @@
         // TODO: Proper error handling
         $.ajax(this.options.serverUrl, {
           data: {
-            patch: patch,
+            patch: patch.delta ? JSON.stringify(patch.delta) : null,
+            properties: patch.properties ? JSON.stringify(patch.properties) : null,
             sessionId: this._sessionId,
             revisionNumber: this._revisionNumber
           },
@@ -1059,22 +1076,18 @@
         return this._patches[0];
       }
       
-      var mergedJson = JSON.parse(this._patches[0]);
-      var deltaMerge = function (key, value) {
-        mergedJson.delta[key] = value;
-      };
+      var deltaMerge = $.proxy(function (key, value) {
+        this._patches[0].delta[key] = value;
+      }, this);
       
       while (this._patches.length > 1) {
-        // TODO: Handle conflicting width / height
-
-        var patch = this._patches.splice(1, 1);
-        var patchJson = JSON.parse(patch);
-        var delta = patchJson.delta;
-        
-        $.each(delta, deltaMerge);
+        var patch = this._patches[1];
+        if ((patch.delta) && (!patch.properties)) {
+          $.each(patch.delta, deltaMerge);
+          this._patches.splice(1, 1);
+        }
       }
       
-      this._patches[0] = JSON.stringify(mergedJson);
       return this._patches[0];
     },
     
@@ -1161,7 +1174,9 @@
 
       var img = new Image();
       img.onload = $.proxy(function () {
-        $(this.element).CoIllusionist('loadImage', img);
+        $(this.element).CoIllusionist('loadImage', img, true);
+        this.element.on('offscreen.change', $.proxy(this._onOffscreenChange, this));
+        this.element.on('offscreen.resize', $.proxy(this._onOffscreenResize, this));
         this._startUpdatePolling();
       }, this);
       
@@ -1171,17 +1186,20 @@
     _onOffscreenChange: function (event, data) {
       var delta = data.delta;
       var patch = {
-        width: data.width,
-        height: data.height,
-        delta: {}
       };
       
       for (var i = 0, l = delta.length; i < l; i++) {
-        patch.delta[delta[i].index] = delta[i].to;
+        patch[delta[i].index] = delta[i].to;
       }
       
-      var patchText = JSON.stringify(patch);
-      this._addPatch(patchText);
+      this._addPatch(patch, null);
+    },
+    
+    _onOffscreenResize: function (event, data) {
+      this._addPatch(null, {
+        width: data.width,
+        height: data.height
+      });
     },
     
     _destroy : function() {
