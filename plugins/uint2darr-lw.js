@@ -7,50 +7,51 @@
   exports.attach = function attach(options) {
     options.diffAlgorithms.push({
       
-      patch: function(patch, data, properties) {
-        var patchApplied = true;
-        var patched = null;
+      patch: function(patch, data, fileProperties, patchProperties, callback) {
+        var content = data.buffer;
+        var patchJson = patch ? JSON.parse(patch) : null;
 
-        var patchJson = JSON.parse(patch);
-        var width = patchJson.width;
-        var height = patchJson.height;
-          
+        var newWidth = (patchProperties||{}).width||fileProperties.width;
+        var newHeight = (patchProperties||{}).height||fileProperties.height;
         try {
-          var canvas = new Canvas(width, height);
+          var canvas = new Canvas(fileProperties.width, fileProperties.height);
           var ctx = canvas.getContext('2d');
           var img = new Image();
           img.src = data.buffer;
-          
           ctx.drawImage(img, 0, 0);
           
-          var delta = patchJson.delta;
-          var indices = _.keys(delta);
-          
-          for (var i = 0, l = indices.length; i < l; i++) {
-            var key = indices[i];
-            var index = parseInt(key, 10);
-            var y = Math.floor(index / width);
-            var x = index - (y * width);
-            var v = delta[key];
-            
-            var r = (v & 4278190080) >>> 24;
-            var g = (v & 16711680) >>> 16;
-            var b = (v & 65280) >>> 8;
-            var a = (v & 255) >>> 0;
-  
-            ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
-            ctx.fillRect(x, y, 1, 1);
+          if ((fileProperties.width != newWidth)||(fileProperties.height != newHeight)) {
+            canvas.width = newWidth;
+            canvas.height = newHeight;
           }
           
-          patched = canvas.toBuffer();
+          if (patchJson) {
+            var indices = _.keys(patchJson);
+            
+            for (var i = 0, l = indices.length; i < l; i++) {
+              var key = indices[i];
+              var index = parseInt(key, 10);
+              var y = Math.floor(index / canvas.width);
+              var x = index - (y * canvas.width);
+              var v = patchJson[key];
+              
+              var r = (v & 4278190080) >>> 24;
+              var g = (v & 16711680) >>> 16;
+              var b = (v & 65280) >>> 8;
+              var a = (v & 255) >>> 0;
+    
+              ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
+              ctx.fillRect(x, y, 1, 1);
+            }
+          }
+          
+          content = canvas.toBuffer();
         } catch (e) {
-          patchApplied = false;
+          callback(e, null, null);
+          return;
         }
         
-        return {
-          applied: patchApplied && (patched != null),
-          patchedText: patched
-        };
+        callback(null, content, patchProperties);
       },
       
       getName: function () {

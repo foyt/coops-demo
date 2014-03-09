@@ -117,13 +117,11 @@
           return;
         }
 
-        if (reqBody.patch) {
-          algorithm = algorithms.getAlgorithm(session.algorithm);
-          if (!algorithm) {
-            valid = false;
-            message = "Algorithm is not supported by this server";
-            status = 400;
-          }
+        algorithm = algorithms.getAlgorithm(session.algorithm);
+        if (!algorithm) {
+          valid = false;
+          message = "Algorithm is not supported by this server";
+          status = 400;
         }
         
         if (!valid) {
@@ -138,40 +136,34 @@
               } else {
                 var patchRevisionNumber = file.revisionNumber + 1;
                 var patch = reqBody.patch;
-                var content = null;
-                var checksum = null;
                 var sessionId = reqBody.sessionId;
-                var properties = _.extend(file.properties||{}, reqBody.properties);
-                
-                if (reqBody.patch) {
-                  var patchResult = algorithm.patch(reqBody.patch, file.content, properties);
-                  if (patchResult.applied) {
-                    content = patchResult.patchedText;
-                    checksum = crypto.createHash('md5').update(content).digest('hex');
+                var fileProperties = file.properties||{};
+                var patchProperties = reqBody.properties ? JSON.parse(reqBody.properties) : null;
+
+                algorithm.patch(patch, file.content, fileProperties, patchProperties, function (err, content, patchProperties) {
+                  if (err) {
+                    res.send(err, 409);
                   } else {
-                    res.send("Could not apply the patch", 409);
-                    return;
-                  }
-                } else {
-                  content = file.content;
-                }
-                
-                db.filerevisions.insert({
-                  fileId: file._id,
-                  revisionNumber: patchRevisionNumber,
-                  patch: patch,
-                  checksum: checksum,
-                  sessionId: sessionId,
-                  properties: reqBody.properties
-                }, function (revisionErr, fileRevision) {
-                  if (revisionErr) {
-                    res.send(revisionErr, 500);
-                  } else {
-                    db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: properties, contentType: file.contentType, }, { multi: false }, function(updateErr) {
-                      if (updateErr) {
-                        res.send(updateErr, 500);
+                    var checksum = crypto.createHash('md5').update(content).digest('hex');
+
+                    db.filerevisions.insert({
+                      fileId: file._id,
+                      revisionNumber: patchRevisionNumber,
+                      patch: patch,
+                      checksum: checksum,
+                      sessionId: sessionId,
+                      properties: patchProperties
+                    }, function (revisionErr, fileRevision) {
+                      if (revisionErr) {
+                        res.send(revisionErr, 500);
                       } else {
-                        res.send(204);
+                        db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: _.extend(fileProperties, fileRevision.properties), contentType: file.contentType, }, { multi: false }, function(updateErr) {
+                          if (updateErr) {
+                            res.send(updateErr, 500);
+                          } else {
+                            res.send(204);
+                          }
+                        });
                       }
                     });
                   }
