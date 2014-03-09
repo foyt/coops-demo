@@ -7,7 +7,7 @@
   exports.attach = function attach(options) {
     options.diffAlgorithms.push({
       
-      patch: function(patch, data) {
+      patch: function(patch, data, properties) {
         var patchApplied = true;
         var patched = null;
 

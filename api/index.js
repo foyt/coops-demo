@@ -141,9 +141,10 @@
                 var content = null;
                 var checksum = null;
                 var sessionId = reqBody.sessionId;
+                var properties = _.extend(file.properties||{}, reqBody.properties);
                 
                 if (reqBody.patch) {
-                  var patchResult = algorithm.patch(reqBody.patch, file.content);
+                  var patchResult = algorithm.patch(reqBody.patch, file.content, properties);
                   if (patchResult.applied) {
                     content = patchResult.patchedText;
                     checksum = crypto.createHash('md5').update(content).digest('hex');
@@ -166,7 +167,6 @@
                   if (revisionErr) {
                     res.send(revisionErr, 500);
                   } else {
-                    var properties = _.extend(file.properties||{}, fileRevision.properties);
                     db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: properties, contentType: file.contentType, }, { multi: false }, function(updateErr) {
                       if (updateErr) {
                         res.send(updateErr, 500);

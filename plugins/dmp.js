@@ -6,7 +6,7 @@
   exports.attach = function attach(options) {
     options.diffAlgorithms.push({
       
-      patch: function(patch, text) {
+      patch: function(patch, text, properties) {
         var patchApplied = true;
         var patches = diffMatchPatch.patch_fromText(patch);
         var result = diffMatchPatch.patch_apply(patches, text);
