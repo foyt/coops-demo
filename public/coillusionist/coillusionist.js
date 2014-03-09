@@ -77,7 +77,9 @@
   });
   
   $.widget("custom.CoIllusionistTool", {
-    options : {},
+    options : {
+      activatable: true
+    },
     _create : function() {
       this.element
         .on("click", $.proxy(this._onClick, this))
@@ -85,8 +87,10 @@
     },
     
     _onClick: function (event) {
-      this.element.closest('.co-illusionist-toolbar').find('.co-illusionist-tool-selected').CoIllusionistTool("deactivate");
-      this.activate();
+      if (this.options.activatable) {
+        this.element.closest('.co-illusionist-toolbar').find('.co-illusionist-tool-selected').CoIllusionistTool("deactivate");
+        this.activate();
+      }
     },
     
     activate: function () {
@@ -171,14 +175,6 @@
         .addClass('co-illusionist-tool-pencil');
     },
     
-    size: function (size) {
-      if (size) {
-        this._size = size;
-      }
-      
-      return this._size;
-    },
-    
     _getCoIllusionist: function () {
        return this.element.closest('.co-illusionist');
     },
@@ -205,8 +201,8 @@
         
         ctx.save();
         try {
-          var size = this.size();
-          var radius = this.size() / 2;
+          var size = this._getCoIllusionist().CoIllusionist('brush').size;
+          var radius = size / 2;
           
           var selection = this._getCoIllusionist().CoIllusionist("clipSelection", ctx);
           this._getCoIllusionist().CoIllusionist("applyPaint", ctx);
@@ -277,8 +273,9 @@
     _create : function() {
       this.element
       .CoIllusionistTool({
-        activate: $.proxy(this._onActivate, this)
+        activatable: false
       })
+      .on("click", $.proxy(this._onClick, this))
       .addClass('co-illusionist-tool-filter');
     },
     
@@ -286,9 +283,7 @@
        return this.element.closest('.co-illusionist');
     },
 
-    _onActivate: function () {
-      this.element.CoIllusionistTool("deactivate");
-      
+    _onClick: function () {
       var filterSelect = $('<select>')
           .attr('name', 'filter');
       
@@ -346,6 +341,68 @@
         Pixastic.process(ctx.canvas, filter, options);
         done(selection);
       }, this));
+    },
+    
+    _destroy : function() {
+    }
+  });
+
+  $.widget("custom.CoIllusionistToolBrush", {
+    _create : function() {
+      this.element
+      .CoIllusionistTool({
+        activatable: false
+      })
+      .on('click', $.proxy(this._onClick, this))
+      .addClass('co-illusionist-tool-brush');
+    },
+    
+    _getCoIllusionist: function () {
+       return this.element.closest('.co-illusionist');
+    },
+
+    _onClick: function () {
+      var brush = this._getCoIllusionist().CoIllusionist('brush');
+      
+      var sizeSlider = $('<div>')
+        .slider({
+          value: brush.size,
+          min: 1,
+          max: 100
+        });
+      
+      var dialog = $('<div>')
+        .addClass('co-illusionist-tool-brush-dialog')
+        .attr('title', 'Brush Settings')
+        .append($('<label>').text('Brush size:'))
+        .append(
+          $('<div>')
+            .addClass('co-illusionist-tool-brush-size-container')
+            .append($('<input>').attr({'name': 'size', 'size': '2'}).val(brush.size))
+            .append(sizeSlider)
+        )
+        .dialog({
+          modal: true,
+          buttons: {
+            'Apply': $.proxy(function () {
+              this._apply($(dialog).find('input[name="size"]').val());
+              $(dialog).dialog('close');
+            }, this),
+            'Cancel': function () {
+              $(dialog).dialog('close');
+            }
+          }
+        });
+            
+      sizeSlider.on('slide', function (event, ui) {
+        dialog.find('input[name="size"]').val(ui.value);
+      });
+    },
+    
+    _apply: function (size) {
+      this._getCoIllusionist().CoIllusionist('brush', {
+        size: size
+      });
     },
     
     _destroy : function() {
@@ -597,6 +654,9 @@
       this._mouseDown = false;
       this._selection = new Rect2D(0, 0, 0, 0);
       this._currentdata = null;
+      this._brush = {
+        size: 10
+      };
       
       this.element.addClass('co-illusionist');
       
@@ -622,6 +682,7 @@
         .append($('<div>').CoIllusionistToolPencil())
         .append($('<div>').CoIllusionistToolSelectRect())
         .append($('<div>').CoIllusionistToolFilter())
+        .append($('<div>').CoIllusionistToolBrush())
         .appendTo(this.element);
       
       this.element.append($('<div>').CoIllusionistPaintBar());
@@ -718,6 +779,16 @@
       }
 
       return this._selection;
+    },
+    
+    brush: function (brush) {
+      if (brush) {
+        $.each(brush, $.proxy(function (key, value) {
+          this._brush[key] = value;
+        }, this));
+      }
+      
+      return this._brush;
     },
     
     createPattern: function (image) {

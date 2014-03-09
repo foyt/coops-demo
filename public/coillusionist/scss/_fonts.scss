@@ -1,10 +1,10 @@
 @font-face {
   font-family: 'coillusionist';
-  src:url('../fonts/coillusionist.eot?y9crty');
-  src:url('../fonts/coillusionist.eot?#iefixy9crty') format('embedded-opentype'),
-    url('../fonts/coillusionist.woff?y9crty') format('woff'),
-    url('../fonts/coillusionist.ttf?y9crty') format('truetype'),
-    url('../fonts/coillusionist.svg?y9crty#coillusionist') format('svg');
+  src:url('../fonts/coillusionist.eot?iv1xgj');
+  src:url('../fonts/coillusionist.eot?#iefixiv1xgj') format('embedded-opentype'),
+    url('../fonts/coillusionist.woff?iv1xgj') format('woff'),
+    url('../fonts/coillusionist.ttf?iv1xgj') format('truetype'),
+    url('../fonts/coillusionist.svg?iv1xgj#coillusionist') format('svg');
   font-weight: normal;
   font-style: normal;
 }
@@ -37,4 +37,7 @@
 }
 .icon-folder-open:before {
   content: "\e604";
+}
+.icon-droplet:before {
+  content: "\e605";
 }

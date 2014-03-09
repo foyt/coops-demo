@@ -63,21 +63,19 @@ $paintbar-button-margin: 5px;
   border: 1px solid #333;
 }
 
-.co-illusionist-tool-load:before {
-  @extend .icon-folder-open:before;
+/* jQuery UI */
+
+.ui-dialog * {
+  font-family: Gadget;
+  font-size: 12px;
+  font-variant: small-caps;
 }
 
-.co-illusionist-tool-pencil:before {
-  @extend .icon-pencil:before;
+.ui-dialog .ui-dialog-buttonpane {
+  padding: 0px;
 }
 
-.co-illusionist-tool-select-rect:before {
-  @extend .icon-rect-select:before;
-}
-
-.co-illusionist-tool-filter:before {
-  @extend .icon-wand:before;
-}
+/* Paint */
 
 .co-illusionist-paintbar {
   position: absolute;
@@ -114,16 +112,6 @@ $paintbar-button-margin: 5px;
   left: 0px;
   right: 0px;
   border-radius: $paintbar-button-border-radius;
-}
-
-.ui-dialog * {
-  font-family: Gadget;
-  font-size: 12px;
-  font-variant: small-caps;
-}
-
-.ui-dialog .ui-dialog-buttonpane {
-  padding: 0px;
 }
 
 .co-illusionist-paintdialog.ui-dialog-content {
@@ -193,6 +181,24 @@ $paintbar-button-margin: 5px;
   cursor: pointer;
 }
 
+/* Pencil */
+
+.co-illusionist-tool-pencil:before {
+  @extend .icon-pencil:before;
+}
+
+/* Select Rect */
+
+.co-illusionist-tool-select-rect:before {
+  @extend .icon-rect-select:before;
+}
+
+/* Filter */
+
+.co-illusionist-tool-filter:before {
+  @extend .icon-wand:before;
+}
+
 .co-illusionist-tool-filter-dialog label {
   margin-top: 10px;
   margin-bottom: 10px;
@@ -202,6 +208,12 @@ $paintbar-button-margin: 5px;
 
 .co-illusionist-tool-filter-dialog select {
   display: block; 
+}
+
+/* Load */
+
+.co-illusionist-tool-load:before {
+  @extend .icon-folder-open:before;
 }
 
 .co-illusionist-tool-load-dialog label {
@@ -215,4 +227,25 @@ $paintbar-button-margin: 5px;
   display: block; 
   width: 100%;
   @include box-sizing(border-box); 
+}
+
+/* Brush */
+
+.co-illusionist-tool-brush:before {
+  @extend .icon-droplet:before;
+}
+
+.co-illusionist-tool-brush-size-container {
+  position: relative;
+}
+
+.co-illusionist-tool-brush-size-container input {
+  text-align: right;
+}
+
+.co-illusionist-tool-brush-size-container .ui-slider {
+  position: absolute;
+  left: 40px;
+  right: 0px; 
+  margin-top: -17px;
 }
