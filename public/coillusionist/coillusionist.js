@@ -358,6 +358,8 @@
       this._paintType = this._pendingType = this.options.type;
       this._paintValue = this._pendingValue = this.options.value;
       this._paintPattern = this._pendingPattern = null;
+      this._setPreviewStyle(this.options.type, this.options.value);
+      
       this.element.addClass('co-illusionist-paintbar-button')
         .click($.proxy(this._onClick, this));
     },
@@ -483,11 +485,6 @@
     _setPaint: function (pending, type, value) {
       switch (type) {
         case 'color':
-          this.element.css({
-            'backgroundColor': value,
-            'backgroundImage': 'none'
-          });
-
           if (pending) {
             this._pendingType = type;
             this._pendingValue = value;
@@ -503,11 +500,6 @@
         case 'pattern':
           var image = new Image();
           image.onload = $.proxy(function () {
-            this.element.css({
-              'backgroundColor': null,
-              'backgroundImage': 'url(' + value + ')'
-            });
-            
             if (pending) {
               this._pendingType = type;
               this._pendingValue = value;
@@ -522,6 +514,25 @@
           }, this);
           
           image.src = value;
+        break;
+      }
+      
+      this._setPreviewStyle(type, value);
+    },
+    
+    _setPreviewStyle: function (type, value) {
+      switch (type) {
+        case 'color':
+          this.element.css({
+            'backgroundColor': value,
+            'backgroundImage': 'none'
+          });
+        break;
+        case 'pattern':
+          this.element.css({
+            'backgroundColor': null,
+            'backgroundImage': 'url(' + value + ')'
+          });
         break;
       }
     },
