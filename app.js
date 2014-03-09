@@ -86,23 +86,29 @@
     
     // Facebook
     
-    app.get('/auth/facebook',  passport.authenticate('facebook', { scope: ['email'] } ));
+    app.get('/auth/facebook', [auth.storeRedictUrl], passport.authenticate('facebook', { scope: ['email'] } ));
     app.get('/auth/facebook/callback', passport.authenticate('facebook'), function(req, res) {
-      res.redirect('/');
+      var redirectUrl = req.session.redirectUrl||'/';
+      req.session.redirectUrl = null;
+      res.redirect(redirectUrl);
     });
     
     // GitHub
     
-    app.get('/auth/github', passport.authenticate('github', { scope: ['user:email'] } ));
+    app.get('/auth/github', [auth.storeRedictUrl], passport.authenticate('github', { scope: ['user:email'] } ));
     app.get('/auth/github/callback', passport.authenticate('github', { failureRedirect: '/login' }), function(req, res) {
-      res.redirect('/');
+      var redirectUrl = req.session.redirectUrl||'/';
+      req.session.redirectUrl = null;
+      res.redirect(redirectUrl);
     });
     
     // Google
     
-    app.get('/auth/google', passport.authenticate('google', { scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'] } ));
+    app.get('/auth/google', [auth.storeRedictUrl], passport.authenticate('google', { scope: ['https://www.googleapis.com/auth/userinfo.profile', 'https://www.googleapis.com/auth/userinfo.email'] } ));
     app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/login' }), function(req, res) {
-      res.redirect('/');
+      var redirectUrl = req.session.redirectUrl||'/';
+      req.session.redirectUrl = null;
+      res.redirect(redirectUrl);
     });
     
     // Logout
@@ -117,16 +123,16 @@
      */
     
     // https://github.com/foyt/coops-spec/#get--load-request    
-    app.get('/files/:fileid', [auth.loggedIn, nocache], api.fileGet);
+    app.get('/files/:fileid', [auth.loggedInNoRedirect, nocache], api.fileGet);
     
     // https://github.com/foyt/coops-spec/#get-update-update-request
-    app.get('/files/:fileid/update', [auth.loggedIn, nocache], api.fileUpdate);
+    app.get('/files/:fileid/update', [auth.loggedInNoRedirect, nocache], api.fileUpdate);
     
     // https://github.com/foyt/coops-spec/#patch--patch-request
-    app.patch('/files/:fileid', [auth.loggedIn, nocache], api.filePatch);
+    app.patch('/files/:fileid', [auth.loggedInNoRedirect, nocache], api.filePatch);
     
     // https://github.com/foyt/coops-spec/#get-join-join-request
-    app.get('/files/:fileid/join', [auth.loggedIn, nocache], api.fileJoin);
+    app.get('/files/:fileid/join', [auth.loggedInNoRedirect, nocache], api.fileJoin);
   });
   
 }).call(this);

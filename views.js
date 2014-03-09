@@ -51,7 +51,8 @@
   module.exports.login = function (req, res) {
     res.render('login', {
       title : 'Login to Co-Ops Demo',
-      loggedUser: req.user
+      loggedUser: req.user,
+      redirectUrl: req.query.redirectUrl
     });
   };
   

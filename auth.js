@@ -189,8 +189,21 @@
       if (req.isAuthenticated()) {
         return next();
       }
+      res.redirect('/login?redirectUrl=' + req.path);
+    },
+    loggedInNoRedirect: function (req, res, next) {
+      if (req.isAuthenticated()) {
+        return next();
+      } else {
+        res.send("Unauthorized", 401);
+      }
+    },
+    storeRedictUrl: function (req, res, next) {
+      if (req.query.redirectUrl) {
+        req.session.redirectUrl = req.query.redirectUrl;
+      }
       
-      res.redirect('/login');
+      return next();
     },
     ensureFileUser: function (req, res, next) {
       var fileId = new ObjectId(req.params.fileid);

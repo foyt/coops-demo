@@ -12,17 +12,17 @@ block content
   p(class="info-text")
     |CoOPS requires that you identify your self, please use one of the services listed below
   div(class="login-button")
-    a(href="/auth/facebook")
+    a(href="/auth/facebook?redirectUrl=#{redirectUrl}")
       img(src="/gfx/login-facebook.png")
       span
         |Login with Facebook
   div(class="login-button")
-    a(href="/auth/google")
+    a(href="/auth/google?redirectUrl=#{redirectUrl}")
       img(src="/gfx/login-google.png")
       span
         |Login with Google
   div(class="login-button")
-    a(href="/auth/github")
+    a(href="/auth/github?redirectUrl=#{redirectUrl}")
       img(src="/gfx/login-github.png")
       span
         | Login with GitHub
