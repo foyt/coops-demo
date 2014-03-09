@@ -774,8 +774,8 @@
               for (var y = 0, h = data.affectedArea.height(); y < h; y++) {
                 var areaIndex = x + (y * w);
                 var dataIndex = (x + data.affectedArea.x()) + ((y + data.affectedArea.y()) * width);
-                var d1 = areaData[areaIndex];
-                var d2 = this._currentData[dataIndex];
+                var d1 = this._currentData[dataIndex];
+                var d2 = areaData[areaIndex];
                 if (d1 !== d2) {
                   delta.push({ index: dataIndex, from: d1, to: d2 });
                   this._currentData[dataIndex] = d2;
@@ -1043,7 +1043,7 @@
 
           $(this.element).CoIllusionist("resetChanges");
           done();
-        }));
+        }, this));
         
         this._revisionNumber = patch.revisionNumber;
       } else {
