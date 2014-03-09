@@ -43,8 +43,7 @@
   app.configure(function () {
     app.use(express.logger());
     app.use(express.cookieParser());
-    app.use(express.urlencoded());
-    app.use(express.json());
+    app.use(express.bodyParser({limit: '50mb'}));
     app.use(express.methodOverride());
     app.use(express.session({ secret: settings.sessionSecret }));
     app.use(passport.initialize());
@@ -71,7 +70,7 @@
     app.get('/editdoc/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editdoc);
     app.get('/newimg', [auth.loggedIn], views.newimg);
     app.get('/editimg/:fileid', [auth.loggedIn, auth.ensureFileUser], views.editimg);
-    app.get('/loadimg', [auth.loggedIn], views.loadImage);
+    app.get('/loadimg', [nocache, auth.loggedInNoRedirect], views.loadImage);
     
     /** 
      * Patterns (temporary) 
