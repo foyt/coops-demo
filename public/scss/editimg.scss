@@ -16,3 +16,15 @@ input[name="name"] {
 input[name="name"]:hover, input[name="name"]:focus {
   background: white;
 }
+
+.editor-header {
+  position: relative;
+}
+
+.editor-status {
+  position: absolute;
+  font-weight: normal;
+  font-variant: small-caps;
+  bottom: 0px;
+  right: 0px;
+}
