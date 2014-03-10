@@ -17,6 +17,18 @@
           showAffectedArea: false
         }
       });
+    
+    coIllusionist.on("sessionStart", function (event) {
+      $('.editor-status').html('Loaded');
+    });
+    
+    coIllusionist.on("patch", function (event) {
+      $('.editor-status').html('Saving...');
+    });
+    
+    coIllusionist.on("patched", function (event) {
+      $('.editor-status').html('Saved');
+    });
   });
 
 }).call(this);
