@@ -34,12 +34,12 @@
               var y = Math.floor(index / canvas.width);
               var x = index - (y * canvas.width);
               var v = patchJson[key];
-              
+              /*jslint bitwise: true */
               var r = (v & 4278190080) >>> 24;
               var g = (v & 16711680) >>> 16;
               var b = (v & 65280) >>> 8;
               var a = (v & 255) >>> 0;
-    
+              /*jslint bitwise: false */
               ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
               ctx.fillRect(x, y, 1, 1);
             }

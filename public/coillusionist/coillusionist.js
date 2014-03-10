@@ -853,11 +853,12 @@
     },
     
     _rpgsToIntArr: function (rgbas) {
+      /*jslint bitwise: true */
       var ints = new Array(rgbas.length >> 2);
       for (var i = 0, l = rgbas.length; i < l; i += 4) {
         ints[i >> 2] = ((rgbas[i] << 24) + (rgbas[i + 1] << 16) + (rgbas[i + 2] << 8) + (rgbas[i + 3] << 0)) >>> 0;
       }
-      
+      /*jslint bitwise: false */
       return ints;
     },
 
@@ -1178,12 +1179,12 @@
               var y = Math.floor(index / width);
               var x = index - (y * width);
               var v = patchJson[key];
-              
+              /*jslint bitwise: true */
               var r = (v & 4278190080) >>> 24;
               var g = (v & 16711680) >>> 16;
               var b = (v & 65280) >>> 8;
               var a = (v & 255) >>> 0;
-  
+              /*jslint bitwise: false */
               ctx.fillStyle = 'rgba(' + [r, g, b, a / 255].join(',') + ')';
               ctx.fillRect(x, y, 1, 1);
             });

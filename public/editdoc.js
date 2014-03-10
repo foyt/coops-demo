@@ -13,7 +13,7 @@
     CKEDITOR.plugins.addExternal('coops-ws', '/ckplugins/coops-ws/');
     CKEDITOR.plugins.addExternal('mrmonkey', '/ckplugins/mrmonkey/');
     
-    var editor = CKEDITOR.appendTo( 'ckcontainer', { 
+    var editor = CKEDITOR.appendTo( 'ckcontainer', {
       skin: 'moono',
       extraPlugins: 'coops,coops-rest,coops-ws,coops-dmp,mrmonkey',
       readOnly: true,
