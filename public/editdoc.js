@@ -65,7 +65,7 @@
       var properties = event.data.properties;
       if (properties) {
         $.each(properties, function (key, value) {
-          if (key == 'title') {
+          if (key === 'title') {
             $('input[name="name"]').val(value);
           }
         });
