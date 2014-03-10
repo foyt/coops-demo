@@ -23,7 +23,7 @@
         }
       },
       
-      unpatch: function(patch, text) {
+      unpatch: function(patch, text, callback) {
         var patchApplied = true;
         var patches = diffMatchPatch.patch_fromText(patch);
 
@@ -42,19 +42,10 @@
         }
         
         if (patchApplied) {
-          text = result[0];
+          callback(null, result[0]);
+        } else {
+          callback("Could not unpatch", null);
         }
-        
-        return {
-          applied: patchApplied,
-          patchedText: text
-        };
-      },
-      
-      makePatch: function(original, modified) {
-        var diff = diffMatchPatch.diff_main(original, modified);
-        diffMatchPatch.diff_cleanupEfficiency(diff);
-        return diffMatchPatch.patch_toText(diffMatchPatch.patch_make(original, diff));
       },
       
       getName: function () {
