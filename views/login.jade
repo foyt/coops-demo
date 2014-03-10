@@ -12,17 +12,35 @@ block content
   p(class="info-text")
     |CoOPS requires that you identify your self, please use one of the services listed below
   div(class="login-button")
-    a(href="/auth/facebook?redirectUrl=#{redirectUrl}")
-      img(src="/gfx/login-facebook.png")
-      span
-        |Login with Facebook
+    if redirectUrl
+      a(href="/auth/facebook?redirectUrl=#{redirectUrl}")
+        img(src="/gfx/login-facebook.png")
+        span
+          |Login with Facebook
+    else
+      a(href="/auth/facebook")
+        img(src="/gfx/login-facebook.png")
+        span
+          |Login with Facebook
   div(class="login-button")
-    a(href="/auth/google?redirectUrl=#{redirectUrl}")
-      img(src="/gfx/login-google.png")
-      span
-        |Login with Google
+    if redirectUrl
+      a(href="/auth/google?redirectUrl=#{redirectUrl}")
+        img(src="/gfx/login-google.png")
+        span
+          |Login with Google
+    else
+      a(href="/auth/google")
+        img(src="/gfx/login-google.png")
+        span
+          |Login with Google
   div(class="login-button")
-    a(href="/auth/github?redirectUrl=#{redirectUrl}")
-      img(src="/gfx/login-github.png")
-      span
-        | Login with GitHub
+    if redirectUrl
+      a(href="/auth/github?redirectUrl=#{redirectUrl}")
+        img(src="/gfx/login-github.png")
+        span
+          | Login with GitHub
+    else
+      a(href="/auth/github")
+        img(src="/gfx/login-github.png")
+        span
+          | Login with GitHub
