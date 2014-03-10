@@ -79,10 +79,7 @@
 	"validthis" : false, // Tolerate strict violations when the code is running in strict mode and you use this in a non-constructor function.
 	
 	// == Environments ====================================================
-	//
-	// These options pre-define global variables that are exposed by
-	// popular JavaScript libraries and runtime environments���such as
-	// browser or node.js.
+
 	"browser" : true, // Standard browser globals e.g. `window`, `document`.
 	"couch" : false, // Enable globals exposed by CouchDB.
 	"devel" : false, // Allow development statements e.g. `console.log();`.
