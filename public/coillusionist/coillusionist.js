@@ -762,7 +762,7 @@
         var ctx = nativeOffscreen.getContext("2d");
         this.element.trigger("offscreen.beforedraw");
         func(ctx, $.proxy(function (affectedArea) {
-          if (affectedArea) {
+          if (affectedArea && !affectedArea.empty()) {
             affectedArea.cut(new Rect2D(0, 0, nativeOffscreen.width, nativeOffscreen.height));
           }
           
@@ -873,7 +873,7 @@
         var width = null;
         var height = null;
         
-        if (!data.affectedArea) {
+        if (!data.affectedArea || data.affectedArea.empty()) {
           var imageData = this.data();
           var currentData = this._rpgsToIntArr(imageData.data);
           delta = this._diffImageData(this._currentData, currentData);
@@ -1064,6 +1064,7 @@
       });
       
       if (this._patching === false) {
+        this.element.trigger("patch");
         this._patching = true;
         this._sendNextPatch();
       }
@@ -1076,6 +1077,7 @@
       
       if (this._patches.length === 0) {
         this._patching = false;
+        this.element.trigger("patched");
       } else {
         var patch = this._mergePatches();
         
@@ -1218,6 +1220,7 @@
         this.element.on('offscreen.change', $.proxy(this._onOffscreenChange, this));
         this.element.on('offscreen.resize', $.proxy(this._onOffscreenResize, this));
         this._startUpdatePolling();
+        this.element.trigger('sessionStart');
       }, this);
       
       img.src = 'data:' + contentType + ';base64,' + data.content;
