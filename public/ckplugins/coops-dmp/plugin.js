@@ -307,7 +307,7 @@
             }
 
             try {
-              _this._applyChanges(currentContent, revertedContent);
+              this._applyChanges(currentContent, revertedContent);
             } catch (e) {
               // Change applying of changed crashed, falling back to setData
               editor.setData(revertedContent);
