@@ -1097,7 +1097,7 @@
         $.ajax(this.options.serverUrl, {
           data: {
             patch: patch.delta ? JSON.stringify(patch.delta) : null,
-            properties: patch.properties ? JSON.stringify(patch.properties) : null,
+            properties: patch.properties,
             sessionId: this._sessionId,
             revisionNumber: this._revisionNumber
           },

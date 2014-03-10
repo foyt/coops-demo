@@ -138,7 +138,7 @@
                 var patch = reqBody.patch;
                 var sessionId = reqBody.sessionId;
                 var fileProperties = file.properties||{};
-                var patchProperties = reqBody.properties ? JSON.parse(reqBody.properties) : null;
+                var patchProperties = reqBody.properties;
 
                 algorithm.patch(patch, file.content, fileProperties, patchProperties, function (err, content, patchProperties) {
                   if (err) {
