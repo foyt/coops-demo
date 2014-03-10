@@ -1044,6 +1044,17 @@
       });
     },
     
+    addPatch: function (delta, properties) {
+      var patchSize = 0;
+      if (delta) {
+        $.each(delta, function(key, value) {
+          patchSize++;
+        });
+      }
+      
+      this._addPatch(delta, properties, patchSize);
+    },
+    
     _startUpdatePolling: function () {
       this._pollUpdates();
     },
@@ -1181,6 +1192,8 @@
             done();
           }, this));
         }
+        
+        this.element.trigger("patchReceived", patch);
         
         this._revisionNumber = patch.revisionNumber;
       } else {
