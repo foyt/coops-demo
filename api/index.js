@@ -77,7 +77,7 @@
                       "checksum": fileRevision.checksum,
                       "patch": fileRevision.patch,
                       "properties": fileRevision.properties,
-                      "extensions": { }
+                      "extensions": fileRevision.extensions
                     });
                   }
 
@@ -139,6 +139,7 @@
                 var sessionId = reqBody.sessionId;
                 var fileProperties = file.properties||{};
                 var patchProperties = reqBody.properties;
+                var extensions = reqBody.extensions;
 
                 algorithm.patch(patch, file.content, fileProperties, patchProperties, function (err, content, patchProperties) {
                   if (err) {
@@ -152,7 +153,8 @@
                       patch: patch,
                       checksum: checksum,
                       sessionId: sessionId,
-                      properties: patchProperties
+                      properties: patchProperties,
+                      extensions: extensions
                     }, function (revisionErr, fileRevision) {
                       if (revisionErr) {
                         res.send(revisionErr, 500);
@@ -231,7 +233,8 @@
                     "contentType": file.contentType,
                     "properties": file.properties,
                     "extensions": {
-                      "x-http-method-override": {}
+                      "x-http-method-override": {},
+                      "ckcur": {}
                     }
                   }));
                 }
