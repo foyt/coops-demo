@@ -5,17 +5,18 @@
     var path = location.pathname.split('/');
     var fileId = path[2];
     var serverUrl = '/files/' + fileId + '';
-  
+
     CKEDITOR.plugins.addExternal('change', '/ckplugins/change/');
     CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
     CKEDITOR.plugins.addExternal('coops-rest', '/ckplugins/coops-rest/');
     CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
     CKEDITOR.plugins.addExternal('coops-ws', '/ckplugins/coops-ws/');
+    CKEDITOR.plugins.addExternal('coops-ckcur', '/ckplugins/coops-ckcur/');
     CKEDITOR.plugins.addExternal('mrmonkey', '/ckplugins/mrmonkey/');
     
     var editor = CKEDITOR.appendTo( 'ckcontainer', {
       skin: 'moono',
-      extraPlugins: 'coops,coops-rest,coops-ws,coops-dmp,mrmonkey',
+      extraPlugins: 'coops,coops-rest,coops-dmp,mrmonkey,coops-ckcur',
       readOnly: true,
       height: 500,
       coops: {
@@ -29,7 +30,7 @@
       }
     });
     
-/* CoOps status messages */
+    /* CoOps status messages */
     
     editor.on("CoOPS:SessionStart", function (event) {
       $('.editor-status').html('Loaded');
