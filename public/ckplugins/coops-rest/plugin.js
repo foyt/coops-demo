@@ -1,5 +1,6 @@
 (function() {
-
+  /*global CKEDITOR,RestConnector */
+  
   CKEDITOR.plugins.add('coops-rest', {
     requires : [ 'coops' ],
     init : function(editor) {
@@ -36,12 +37,13 @@
             if (!event.data.isConnected()) {
               var joinData = event.data.joinData;
               
-              this._useMethodOverride = joinData.extensions['x-http-method-override'] != undefined;
+              this._useMethodOverride = !!joinData.extensions['x-http-method-override'];
               this._revisionNumber = joinData.revisionNumber;
               this._sessionId = joinData.sessionId;
 
               this.getEditor().on("CoOPS:ContentPatch", this._onContentPatch, this);
               this.getEditor().on("CoOPS:ContentRevert", this._onContentRevert, this);
+              this.getEditor().on('CoOPS:ExtensionPatch', this._onExtensionPatch, this);
               this.getEditor().on("propertiesChange", this._onPropertiesChange, this);
     
               this._startUpdatePolling();
@@ -49,11 +51,33 @@
               event.data.markConnected();
             }
           },
+          
+          _onExtensionPatch: function (event) {
+            this.getEditor().getChangeObserver().pause();
+            var extensions = event.data.extensions;
+            
+            this._doPatch(this._editor.config.coops.serverUrl, { extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+              switch (status) {
+                case 204:
+                  // Request was ok
+                break;
+                case 409:
+                  this.getEditor().getChangeObserver().resume();
+                  this.getEditor().fire("CoOPS:PatchRejected");
+                break;
+                default:
+                  // TODO: Proper error handling
+                  alert('Unknown Error');
+                break;
+              }
+              
+            }, this));
+          },
 
           _onContentPatch : function(event) {
             if (this.getEditor().config.coops.readOnly === true) {
               return;
-            } 
+            }
             
             var patch = event.data.patch;
             this.getEditor().getChangeObserver().pause();
@@ -169,9 +193,9 @@
           _pollUpdates : function(event) {
             var url = this._editor.config.coops.serverUrl + '/update?revisionNumber=' + this._revisionNumber;
             this._doGet(url, {}, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-              if (status == 200) {
+              if (status === 200) {
                 this._applyPatches(responseJson);
-              } else if ((status == 204) || (status == 304)) {
+              } else if ((status === 204) || (status === 304)) {
                 // Not modified
               } else {
                 // TODO: Proper error handling
@@ -195,10 +219,12 @@
             if (this._sessionId != patch.sessionId) {
               // Received a patch from other client
               if (this._editor.fire("CoOPS:PatchReceived", {
+                sessionId: patch.sessionId,
                 patch : patch.patch,
                 checksum: patch.checksum,
                 revisionNumber: patch.revisionNumber,
-                properties: patch.properties
+                properties: patch.properties,
+                extensions: patch.extensions
               })) {
                 this._revisionNumber = patch.revisionNumber;
                 callback();
