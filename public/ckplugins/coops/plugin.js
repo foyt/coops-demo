@@ -64,8 +64,9 @@
       editor.on( 'instanceReady', function(event) {
         this._coOps = new CKEDITOR.coops.CoOps(this);
 
-        var algorithms = new Array();
-        var connectors = new Array();
+        var algorithms = [];
+        var connectors = [];
+        var extensions = [];
         
         var beforeJoinEvent = {
           addAlgorithm: function (algorithm) {
@@ -73,6 +74,9 @@
           },
           addConnector: function (connector) {
             connectors.push(connector);
+          },
+          addExtension: function (extension) {
+            extensions.push(extension);
           }
         };
         
@@ -91,6 +95,12 @@
         for (var i = 0, l = connectors.length; i < l; i++) {
           if (connectors[i].getRequiredScripts()) {
             requiredScripts = requiredScripts.concat(connectors[i].getRequiredScripts());
+          }
+        }
+        
+        for (var i = 0, l = extensions.length; i < l; i++) {
+          if (extensions[i].getRequiredScripts()) {
+            requiredScripts = requiredScripts.concat(extensions[i].getRequiredScripts());
           }
         }
         
@@ -143,12 +153,12 @@
         this.fire("CoOPS:BeforeSessionStart", beforeStartEvent);
 
         if (beforeStartEvent.isConnected()) {
-          this.fire("CoOPS:SessionStart");
           this.setData(content, function () {
             if (this.config.coops.readOnly !== true) {
               this.getChangeObserver().reset(content);
               this.getChangeObserver().resume();
-              this.setReadOnly(false);  
+              this.setReadOnly(false);
+              this.fire("CoOPS:SessionStart");
             }
           });
         } else {
