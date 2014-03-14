@@ -1,5 +1,6 @@
 (function() {
-
+  /* global CKEDITOR, ActiveXObject, RestConnector:true */
+  
   CKEDITOR.plugins.add('coops-rest', {
     requires : [ 'coops' ],
     init : function(editor) {
@@ -24,8 +25,10 @@
             
             this._fileJoin(algorithms, protocolVersion, CKEDITOR.tools.bind(function (status, responseJson, error) {
               if (error) {
-                // TODO: Proper error handling
-                alert('Could not join:' + error);
+                editor.fire("CoOPS:Error", {
+                  type: "join",
+                  error: error
+                });
               } else {
                 editor.fire("CoOPS:Joined", responseJson);
               }
@@ -36,7 +39,7 @@
             if (!event.data.isConnected()) {
               var joinData = event.data.joinData;
               
-              this._useMethodOverride = joinData.extensions['x-http-method-override'] != undefined;
+              this._useMethodOverride = !!joinData.extensions['x-http-method-override'];
               this._revisionNumber = joinData.revisionNumber;
               this._sessionId = joinData.sessionId;
 
@@ -53,7 +56,7 @@
           _onContentPatch : function(event) {
             if (this.getEditor().config.coops.readOnly === true) {
               return;
-            } 
+            }
             
             var patch = event.data.patch;
             this.getEditor().getChangeObserver().pause();
@@ -68,8 +71,10 @@
                   this.getEditor().fire("CoOPS:PatchRejected");
                 break;
                 default:
-                  // TODO: Proper error handling
-                  alert('Unknown Error');
+                  editor.fire("CoOPS:Error", {
+                    type: "patch",
+                    error: responseText
+                  });
                 break;
               }
               
@@ -79,7 +84,7 @@
           _onPropertiesChange: function (event) {
             if (this.getEditor().config.coops.readOnly === true) {
               return;
-            } 
+            }
 
             this.getEditor().getChangeObserver().pause();
             
@@ -88,7 +93,7 @@
             
             for (var i = 0, l = changedProperties.length; i < l; i++) {
               properties[changedProperties[i].property] = changedProperties[i].currentValue;
-            };
+            }
             
             this._doPatch(this._editor.config.coops.serverUrl, { properties: properties, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               switch (status) {
@@ -100,8 +105,10 @@
                   this.getEditor().fire("CoOPS:PatchRejected");
                 break;
                 default:
-                  // TODO: Proper error handling
-                  alert('Unknown Error');
+                  editor.fire("CoOPS:Error", {
+                    type: "patch",
+                    error: responseText
+                  });
                 break;
               }
               
@@ -127,8 +134,10 @@
                   });
                 break;
                 default:
-                  // TODO: Proper error handling
-                  alert('Unknown Error');
+                  editor.fire("CoOPS:Error", {
+                    type: "revert",
+                    error: responseText
+                  });
                 break;
               }
               
@@ -136,13 +145,13 @@
           },
           
           _fileJoin: function (algorithms, protocolVersion, callback) {
-            var parameters = new Array();
+            var parameters = [];
             for (var i = 0, l = algorithms.length; i < l; i++) {
               parameters.push({
                 name: 'algorithm',
                 value: algorithms[i]
               });
-            };
+            }
             
             parameters.push({
               name: 'protocolVersion',
@@ -169,13 +178,15 @@
           _pollUpdates : function(event) {
             var url = this._editor.config.coops.serverUrl + '/update?revisionNumber=' + this._revisionNumber;
             this._doGet(url, {}, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-              if (status == 200) {
+              if (status === 200) {
                 this._applyPatches(responseJson);
-              } else if ((status == 204) || (status == 304)) {
-                // Not modified
               } else {
-                // TODO: Proper error handling
-                alert(responseText);
+                if ((status !== 204)||(status !== 304)) {
+                  editor.fire("CoOPS:Error", {
+                    type: "update",
+                    error: responseText
+                  });
+                }
               }
               
               this._timer = CKEDITOR.tools.setTimeout(this._pollUpdates, 500, this);
@@ -192,6 +203,7 @@
           },
           
           _applyPatch: function (patch, callback) {
+            /*jslint es5:false, eqeqeq: true */
             if (this._sessionId != patch.sessionId) {
               // Received a patch from other client
               if (this._editor.fire("CoOPS:PatchReceived", {
@@ -202,7 +214,7 @@
               })) {
                 this._revisionNumber = patch.revisionNumber;
                 callback();
-              };
+              }
             } else {
               // Our patch was accepted, yay!
               this._revisionNumber = patch.revisionNumber;
@@ -212,16 +224,17 @@
                 revisionNumber: this._revisionNumber
               });
             }
+            /*jslint eqeqeq: false */
           },
 
           _doGet: function (url, parameters, callback) {
             this._doGetRequest(url, parameters, function (status, responseText) {
-              if ((status == 200) && (!responseText)) {
+              if ((status === 200) && (!responseText)) {
                 // Request was probably aborted...
                 return;
               }
               
-              if (status != 200) {
+              if (status !== 200) {
                 callback(status, null, responseText);
               } else {
                 callback(status, JSON.parse(responseText), null);
@@ -249,13 +262,13 @@
             var data = JSON.stringify(object);
             
             this._doPostRequest(method, url, data, 'application/json', function (status, responseText) {
-              if ((status == 200) && (!responseText)) {
+              if ((status === 200) && (!responseText)) {
                 // Request was probably aborted...
                 return;
               }
               
               try {
-                if (status != 200) {
+                if (status !== 200) {
                   callback(status, null, responseText);
                 } else {
                   var responseJson = JSON.parse(responseText);
@@ -274,12 +287,12 @@
                 if (i > 0) {
                   result += '&';
                 }
-                result += encodeURIComponent(parameters[i].name) + '=' + encodeURIComponent(parameters[i].value);  
+                result += encodeURIComponent(parameters[i].name) + '=' + encodeURIComponent(parameters[i].value);
               }
             }
             
             return result;
-          }, 
+          },
           
           _doGetRequest: function (url, parameters, callback) {
             var xhr = this._createXMLHttpRequest();
@@ -287,9 +300,9 @@
             
             xhr.open("get", url + ((parameters.length > 0) ? '?' + this._processParameters(parameters) : ''), async);
             
-            if (async == true) {
+            if (async) {
               xhr.onreadystatechange = function() {
-                if (xhr.readyState==4) {
+                if (xhr.readyState === 4) {
                   callback(xhr.status, xhr.responseText);
                 }
               };
@@ -297,7 +310,7 @@
             
             xhr.send(null);
 
-            if (async == false) {
+            if (!async) {
               callback(xhr.status, xhr.responseText);
             }
           },
@@ -305,7 +318,7 @@
           _doPostRequest: function (method, url, data, contentType, callback) {
             var xhr = this._createXMLHttpRequest();
             var async = true;
-            if (this._useMethodOverride && (method != 'POST')) {
+            if (this._useMethodOverride && (method !== 'POST')) {
               xhr.open("POST", url, async);
               xhr.setRequestHeader("x-http-method-override", method);
             } else {
@@ -320,9 +333,9 @@
               xhr.setRequestHeader("Connection", "close");
             }
             
-            if (async == true) {
+            if (async) {
               xhr.onreadystatechange = function() {
-                if (xhr.readyState==4) {
+                if (xhr.readyState === 4) {
                   callback(xhr.status, xhr.responseText);
                 }
               };
@@ -330,16 +343,19 @@
             
             xhr.send(data);
             
-            if (async == false) {
+            if (!async) {
               callback(xhr.status, xhr.responseText);
             }
           },
           
           _createXMLHttpRequest: function() {
-            if ( !CKEDITOR.env.ie || location.protocol != 'file:' )
-            try { return new XMLHttpRequest(); } catch(e) {}
-            try { return new ActiveXObject( 'Msxml2.XMLHTTP' ); } catch (e) {}
-            try { return new ActiveXObject( 'Microsoft.XMLHTTP' ); } catch (e) {}
+            /*jslint es5:false, eqeqeq: true */
+            if ( !CKEDITOR.env.ie || location.protocol != 'file:' ) {
+              try { return new XMLHttpRequest(); } catch(e) {}
+              try { return new ActiveXObject( 'Msxml2.XMLHTTP' ); } catch (e) {}
+              try { return new ActiveXObject( 'Microsoft.XMLHTTP' ); } catch (e) {}
+            }
+            /*jslint eqeqeq: false */
             return null;
           }
         }
