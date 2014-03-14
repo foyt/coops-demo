@@ -15,6 +15,9 @@
           this._colors = this._createCursorColors(0.5, 64);
           this._clientSelections = {};
           this._canvas = document.createElement('canvas');
+          this._pendingSelections = null;
+          this._sendInterval = 1000;
+          this._sendTimeout = null;
 
           editor.on("CoOPS:SessionStart", this._onSessionStart, this);
           
@@ -24,6 +27,7 @@
           _onSessionStart: function () {
             this.getEditor().on("selectionChange", this._onSelectionChange, this);
             this.getEditor().on("CoOPS:PatchReceived", this._onPatchReceived, this);
+            this.getEditor().on("CoOPS:PatchApplied", this._onPatchApplied, this);
             
             this.getEditor().document.on("mouseup", function () {
               this._checkSelection();
@@ -71,39 +75,48 @@
             return [];
           },
           
+          _onPatchApplied: function (event) {
+            this._checkSelection();
+            this._drawClientSelections();
+          },
+          
           _onPatchReceived: function (event) {
             var data = event.data;
-            if (data.extensions.ckcur && data.extensions.ckcur.selections) {
-              var sessionId = event.data.sessionId;
+            var sessionId = event.data.sessionId;
 
-              var clientSelection = this._clientSelections[sessionId];
-              if (!clientSelection) {
-                clientSelection = this._clientSelections[sessionId] = {
-                  color: this._nextColor(),
-                  boxes: []
-                };
-              } else {
-                clientSelection.boxes = [];
-              }
-              
+            var clientSelection = this._clientSelections[sessionId];
+            if (!clientSelection) {
+              clientSelection = this._clientSelections[sessionId] = {
+                color: this._nextColor(),
+                ranges: []
+              };
+            } else {
+              clientSelection.ranges = [];
+            }
+            
+            if (data.extensions && data.extensions.ckcur && data.extensions.ckcur.selections) {
               var selections = data.extensions.ckcur.selections;
               for (var i = 0, l = selections.length; i < l; i++) {
                 var selection = selections[i];
                 var startContainer = this._findNodeByXPath(selection.startContainer);
                 var startOffset = selection.startOffset;
                 var endOffset = selection.endOffset;
-
-                var range = new CKEDITOR.dom.range( this.getEditor().document );
-                range.setStart(startContainer, startOffset);
                 
-                if (selection.collapsed) {
-                  range.setEnd(startContainer, endOffset);
-                } else {
-                  var endContainer = this._findNodeByXPath(selection.endContainer);
-                  range.setEnd(endContainer, endOffset);
+                try {
+                  var range = new CKEDITOR.dom.range( this.getEditor().document );
+                  range.setStart(startContainer, startOffset);
+                  
+                  if (selection.collapsed) {
+                    range.setEnd(startContainer, endOffset);
+                  } else {
+                    var endContainer = this._findNodeByXPath(selection.endContainer);
+                    range.setEnd(endContainer, endOffset);
+                  }
+                  
+                  clientSelection.ranges.push(range);
+                } catch (e) {
+                  throw e;
                 }
-                
-                clientSelection.boxes = clientSelection.boxes.concat(this._createBoxes(range));
               }
             }
             
@@ -139,14 +152,22 @@
                     endOffset: range.endOffset
                   });
                 }
-                
-                this.getEditor().fire('CoOPS:ExtensionPatch', {
-                  extensions: {
-                    ckcur: {
-                      selections: selections
+              }
+              
+              this._pendingSelections = selections;
+              if (!this._sendTimeout) {
+                this._sendTimeout = CKEDITOR.tools.setTimeout(function() {
+                  this.getEditor().fire('CoOPS:ExtensionPatch', {
+                    extensions : {
+                      ckcur : {
+                        selections : this._pendingSelections
+                      }
                     }
-                  }
-                });
+                  });
+                  
+                  this._pendingSelections = null;
+                  this._sendTimeout = null;
+                }, this._sendInterval, this);
               }
             }
           },
@@ -168,7 +189,6 @@
                 width: 1,
                 height: Math.ceil(boundingBox.height + (verticalMargin * 2))
               });
-              
             } else {
               var walker = new CKEDITOR.dom.walker(range);
               walker.evaluator = function( node ) {
@@ -208,12 +228,28 @@
             var canvasHeight = 0;
             var canvasWidth = 0;
             var clients = CKEDITOR.tools.objectKeys(this._clientSelections);
+            var boxedSelections = [];
             
             for (var i = 0, l = clients.length; i < l; i++) {
               var clientSelection = this._clientSelections[clients[i]];
-              for (var j = 0, jl = clientSelection.boxes.length; j < jl; j++) {
-                var box = clientSelection.boxes[j];
-                
+              for (j = clientSelection.ranges.length - 1; j >= 0; j--) {
+                var range = clientSelection.ranges[j];
+                if (!range.startContainer || !range.startContainer.$) {
+                  // Selection is no longer valid, so we drop it out
+                  clientSelection.ranges.splice(j, 1);
+                } else {
+                  boxedSelections.push({
+                    color: clientSelection.color,
+                    boxes: this._createBoxes(clientSelection.ranges[j])
+                  });
+                }
+              }
+            }
+
+            for (var i = 0, l = boxedSelections.length; i < l; i++) {
+              var boxedSelection = boxedSelections[i];
+              for (var j = 0, jl = boxedSelection.boxes.length; j < jl; j++) {
+                var box = boxedSelection.boxes[j];
                 canvasHeight = Math.max(canvasHeight, box.top + box.height);
                 canvasWidth = Math.max(canvasWidth, box.left + box.width);
               }
@@ -224,18 +260,17 @@
 
             var ctx = this._canvas.getContext("2d");
             
-            for (var i = 0, l = clients.length; i < l; i++) {
-              var clientSelection = this._clientSelections[clients[i]];
-              ctx.fillStyle = clientSelection.color;
-
-              for (var j = 0, jl = clientSelection.boxes.length; j < jl; j++) {
-                var box = clientSelection.boxes[j];
+            for (var i = 0, l = boxedSelections.length; i < l; i++) {
+              var boxedSelection = boxedSelections[i];
+              ctx.fillStyle = boxedSelection.color;
+              for (var j = 0, jl = boxedSelection.boxes.length; j < jl; j++) {
+                var box = boxedSelection.boxes[j];
                 ctx.fillRect(box.left, box.top, box.width, box.height);
               }
             }
             
             this.getEditor().document.getBody().setStyles({
-              'background-image': 'url(' + this._canvas.toDataURL() + ')',
+              'background-image': (canvasHeight > 0) && (canvasWidth > 0) ? 'url(' + this._canvas.toDataURL() + ')' : 'none',
               'background-repeat': 'no-repeat',
               'background-position': 'top left'
             });
