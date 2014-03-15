@@ -1,11 +1,13 @@
 (function() {
+  /* global CKEDITOR */
+  
   if (CKEDITOR.coops === undefined) {
     CKEDITOR.coops = {};
   }
   
   var PROTOCOL_VERSION = '1.0.0';
   
-  CKEDITOR.coops.Feature = CKEDITOR.tools.createClass({   
+  CKEDITOR.coops.Feature = CKEDITOR.tools.createClass({
     $: function(editor) {
       this._editor = editor;
     },
@@ -22,12 +24,94 @@
     }
   });
   
-  CKEDITOR.coops.CoOps = CKEDITOR.tools.createClass({  
+  CKEDITOR.coops.CoOps = CKEDITOR.tools.createClass({
     $: function(editor) {
+      console.log("CoOps: " + editor.name)
+      
       this._editor = editor;
       this._lastSelectionRanges = null;
       this._unsavedContent = null;
       this._savedContent = null;
+      
+      var algorithms = [];
+      var connectors = [];
+      var algorithmNames = [];
+      var requiredScripts = [];
+      
+      var beforeJoinEvent = {
+        addAlgorithm: function (algorithm) {
+          algorithms.push(algorithm);
+        },
+        addConnector: function (connector) {
+          connectors.push(connector);
+        }
+      };
+      
+      this._editor.on('contentChange', $.proxy(function(event) {
+        this.setUnsavedContent(event.data.currentContent);
+        this._editor.fire("CoOPS:ContentDirty");
+      }, this));
+    
+      this._editor.on('CoOPS:SessionStart', $.proxy(function(event) {
+        this.setSavedContent(this._editor.getData());
+      }, this));
+
+      this._editor.on('CoOPS:PatchAccepted', $.proxy(function(event) {
+        this.setSavedContent(this._editor.getData());
+      }, this));
+
+      this._editor.on('CoOPS:ContentReverted', $.proxy(function(event) {
+        this.setSavedContent(event.data.content);
+      }, this));
+
+      this._editor.on('CoOPS:PatchApplied', $.proxy(function(event) {
+        this.setSavedContent(event.data.content);
+      }, this));
+
+      this._editor.on("CoOPS:Joined", $.proxy(function (event) {
+        var content = event.data.content;
+        
+        this._editor.getChangeObserver().pause();
+        this._editor.getSelection().removeAllRanges();
+        
+        var connected = false;
+        var beforeStartEvent = {
+          joinData: event.data,
+          isConnected: function () {
+            return connected;
+          },
+          markConnected: function () {
+            connected = true;
+          }
+        };
+
+        this._editor.fire("CoOPS:BeforeSessionStart", beforeStartEvent);
+
+        if (beforeStartEvent.isConnected()) {
+          this._editor.fire("CoOPS:SessionStart");
+          this._editor.setData(content, function () {
+            if (this.config.coops.readOnly !== true) {
+              this.getChangeObserver().reset(content);
+              this.getChangeObserver().resume();
+              this.setReadOnly(false);
+            }
+          });
+        } else {
+          // TODO: Proper error handling
+          alert('Could not connect...');
+        }
+      }, this));
+      
+      this._editor.fire("CoOPS:BeforeJoin", beforeJoinEvent);
+      
+      for (var i = 0, l = algorithms.length; i < l; i++) {
+        algorithmNames.push(algorithms[i].getName());
+      }
+      
+      this._editor.fire("CoOPS:Join", {
+        protocolVersion: PROTOCOL_VERSION,
+        algorithms: algorithmNames
+      });
     },
     proto : {
       getEditor: function () {
@@ -60,103 +144,12 @@
         }
       });
     },
-    init: function( editor ) {  
+    init: function( editor ) {
       editor.on( 'instanceReady', function(event) {
+        console.log("instance: " + this .name);
+        
         this._coOps = new CKEDITOR.coops.CoOps(this);
-
-        var algorithms = new Array();
-        var connectors = new Array();
-        
-        var beforeJoinEvent = {
-          addAlgorithm: function (algorithm) {
-            algorithms.push(algorithm);
-          },
-          addConnector: function (connector) {
-            connectors.push(connector);
-          }
-        };
-        
-        this.fire("CoOPS:BeforeJoin", beforeJoinEvent);
-
-        var algorithmNames = new Array();
-        var requiredScripts = new Array();
-        
-        for (var i = 0, l = algorithms.length; i < l; i++) {
-          algorithmNames.push(algorithms[i].getName());
-          if (algorithms[i].getRequiredScripts()) {
-            requiredScripts = requiredScripts.concat(algorithms[i].getRequiredScripts());
-          }
-        }
-        
-        for (var i = 0, l = connectors.length; i < l; i++) {
-          if (connectors[i].getRequiredScripts()) {
-            requiredScripts = requiredScripts.concat(connectors[i].getRequiredScripts());
-          }
-        }
-        
-        CKEDITOR.scriptLoader.load(requiredScripts, function (completed, failed) {
-          this.fire("CoOPS:Join", {
-            protocolVersion: PROTOCOL_VERSION,
-            algorithms: algorithmNames
-          });
-        }, this, true);
       });
-        
-      editor.on('contentChange', function(event) {
-        this._coOps.setUnsavedContent(event.data.currentContent);
-        editor.fire("CoOPS:ContentDirty");
-      });
-    
-      editor.on('CoOPS:SessionStart', function(event) {
-        this._coOps.setSavedContent(this.getData());
-      });
-    
-      editor.on('CoOPS:PatchAccepted', function(event) {
-        this._coOps.setSavedContent(this.getData());
-      });
-    
-      editor.on('CoOPS:ContentReverted', function(event) {
-        this._coOps.setSavedContent(event.data.content);
-      });
-    
-      editor.on('CoOPS:PatchApplied', function(event) {
-        this._coOps.setSavedContent(event.data.content);
-      });
-      
-      editor.on("CoOPS:Joined", function (event) {
-        var content = event.data.content;
-        
-        this.getChangeObserver().pause();
-        this.getSelection().removeAllRanges();
-        
-        var connected = false;
-        var beforeStartEvent = {
-          joinData: event.data,
-          isConnected: function () {
-            return connected;
-          },
-          markConnected: function () {
-            connected = true;
-          }
-        };
-
-        this.fire("CoOPS:BeforeSessionStart", beforeStartEvent);
-
-        if (beforeStartEvent.isConnected()) {
-          this.fire("CoOPS:SessionStart");
-          this.setData(content, function () {
-            if (this.config.coops.readOnly !== true) {
-              this.getChangeObserver().reset(content);
-              this.getChangeObserver().resume();
-              this.setReadOnly(false);
-            }
-          });
-        } else {
-          // TODO: Proper error handling
-          alert('Could not connect...');
-        }
-      });
-  
     }
   });
   
