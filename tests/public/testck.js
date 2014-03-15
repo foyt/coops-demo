@@ -7,11 +7,7 @@
   CKEDITOR.plugins.addExternal('change', '/ckplugins/change/');
   CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
   CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
-  CKEDITOR.plugins.addExternal('coops-dummy-connector', '/ckplugins/coops-dummy-connector/');
-  
-  function generateGUID() {
-    return hex_md5(Math.random() * 10000);
-  }
+  CKEDITOR.plugins.addExternal('coops-mock-connector', '/ckplugins/coops-mock-connector/');
   
   $.widget("custom.TestCK", {
     options: {
@@ -24,17 +20,10 @@
           { name: 'styles', items : [ 'Styles','Format' ] },
           { name: 'basicstyles', items : [ 'Bold','Italic','Strike','-','RemoveFormat' ] }
         ],
-        extraPlugins: 'coops,coops-dmp,coops-dummy-connector',
+        extraPlugins: 'coops,coops-dmp,coops-mock-connector',
         readOnly: true,
         coops: {
-          serverUrl: 'dummy',
-          mock: {
-            content: $('#server').TestServer('content'),
-            revisionNumber: $('#server').TestServer('revision'),
-            sessionId: generateGUID(),
-            properties: {},
-            extensions: {}
-          }
+          serverUrl: 'dummy'
         }
       });
       
@@ -47,11 +36,11 @@
     },
     
     sessionId: function () {
-      return this._editor.mock.sessionId;
+      return this._editor._mock._sessionId;
     },
     
     revisionNumber: function () {
-      return this._editor.mock.revisionNumber;
+      return this._editor._mock._revisionNumber;
     },
     
     _onCoOPSContentPatch: function (event) {
@@ -79,22 +68,22 @@
     _onUpdateClick: function (event) {
       event.preventDefault();
       
-      $('#server').TestServer('updates', this._editor.mock.revisionNumber, $.proxy(function (status, patches) {
+      $('#server').TestServer('updates', this._editor._mock._revisionNumber, $.proxy(function (status, patches) {
         if (status === 200) {
           for (var i = 0, l = patches.length; i < l; i++) {
             var patch = patches[i];
             
-            if (this._editor.mock.sessionId !== patch.sessionId) {
+            if (this._editor._mock._sessionId !== patch.sessionId) {
               if (this._editor.fire("CoOPS:PatchReceived", {
                 patch : patch.patch,
                 checksum: patch.checksum,
                 revisionNumber: patch.revisionNumber,
                 properties: patch.properties
               })) {
-                this._editor.mock.revisionNumber = patch.revisionNumber;
+                this._editor._mock._revisionNumber = patch.revisionNumber;
               }
             } else {
-              this._editor.mock.revisionNumber = patch.revisionNumber;
+              this._editor._mock._revisionNumber = patch.revisionNumber;
               this._editor.getChangeObserver().resume();
               this._editor.fire("CoOPS:PatchAccepted", { });
             }
@@ -215,7 +204,7 @@
   $(document).ready(function (event) {
     $('#server').TestServer();
     $('#ck1').TestCK();
-    // $('#ck2').TestCK();
+    $('#ck2').TestCK();
   });
   
 
