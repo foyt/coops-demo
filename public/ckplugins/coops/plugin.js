@@ -148,7 +148,7 @@
             if (this.config.coops.readOnly !== true) {
               this.getChangeObserver().reset(content);
               this.getChangeObserver().resume();
-              this.setReadOnly(false);  
+              this.setReadOnly(false);
             }
           });
         } else {
