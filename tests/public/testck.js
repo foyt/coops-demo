@@ -31,7 +31,7 @@
       
       this.element.append($('<div>')
         .addClass('ck-actions')
-        .append($('<a>').text('Update').attr('href', '#').click($.proxy(this._onUpdateClick, this)))
+        .append($('<a>').addClass('ck-action-update').text('Update').attr('href', '#').click($.proxy(this._onUpdateClick, this)))
       );
     },
     
@@ -138,21 +138,32 @@
       if (this.revision() === revisionNumber) {
         var patchRevision = revisionNumber + 1;
         
-        this._revisions.push({
-          revisionNumber: patchRevision,
-          patch: patch,
-          sessionId: sessionId,
-          properties: properties,
-          extensions: extensions
-        });
-        
         if (patch) {
-          this._dmpPatch(patch, this.content(), this.properties(), properties, function (err, patched) {
+          this._dmpPatch(patch, this.content(), this.properties(), properties, $.proxy(function (err, patched) {
             $('.ck-rev').val(patchRevision);
             $('.ck-content').val(patched);
+            
+            this._revisions.push({
+              revisionNumber: patchRevision,
+              patch: patch,
+              checksum: hex_md5(patched),
+              sessionId: sessionId,
+              properties: properties,
+              extensions: extensions
+            });
+            
             callback(err ? 500 : 204);
-          });
+          }, this));
         } else {
+          this._revisions.push({
+            revisionNumber: patchRevision,
+            patch: null,
+            checksum: null,
+            sessionId: sessionId,
+            properties: properties,
+            extensions: extensions
+          });
+          
           $('.ck-rev').val(patchRevision);
           callback(204);
         }
