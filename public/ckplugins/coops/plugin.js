@@ -23,8 +23,6 @@
   
   CKEDITOR.coops.CoOps = CKEDITOR.tools.createClass({
     $: function(editor) {
-      console.log("CoOps: " + editor.name)
-      
       this._editor = editor;
       this._lastSelectionRanges = null;
       this._unsavedContent = null;
@@ -142,8 +140,6 @@
     },
     init: function( editor ) {
       editor.on( 'instanceReady', function(event) {
-        console.log("instance: " + this .name);
-        
         this._coOps = new CKEDITOR.coops.CoOps(this);
       });
     }
