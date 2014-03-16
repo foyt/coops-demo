@@ -1,8 +1,8 @@
 (function() {
-  /* global CKEDITOR, MockConnectorConnector:true */
+  /* global CKEDITOR, hex_md5, MockConnectorConnector:true */
   
   function generateGUID() {
-    return hex_md5(Math.random() * 10000);
+    return hex_md5(String(Math.random() * 10000));
   }
   
   CKEDITOR.plugins.add('coops-mock-connector', {
@@ -15,7 +15,6 @@
           this.base(editor);
           
           editor._mock = this;
-
           editor.on('CoOPS:Join', this._onCoOpsJoin, this);
           editor.on("CoOPS:BeforeSessionStart", this._onBeforeSessionStart, this, null, 9999);
         },
@@ -38,10 +37,8 @@
 
           _onBeforeSessionStart : function(event) {
             if (!event.data.isConnected()) {
-
               this._revisionNumber = 0;
               this._sessionId = generateGUID();
-              
               var joinData = event.data.joinData;
               event.data.markConnected();
             }
