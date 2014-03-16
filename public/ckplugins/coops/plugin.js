@@ -17,9 +17,6 @@
       },
       getName: function () {
         return null;
-      },
-      getRequiredScripts: function () {
-        return null;
       }
     }
   });
@@ -36,7 +33,6 @@
       var algorithms = [];
       var connectors = [];
       var algorithmNames = [];
-      var requiredScripts = [];
       
       var beforeJoinEvent = {
         addAlgorithm: function (algorithm) {
