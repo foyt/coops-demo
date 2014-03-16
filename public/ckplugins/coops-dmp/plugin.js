@@ -30,13 +30,6 @@
           getName: function () {
             return "dmp";
           },
-          getRequiredScripts: function () {
-            return [
-//              editor.plugins['coops-dmp'].path + 'required/diff_match_patch.js', 
-//              editor.plugins['coops-dmp'].path + 'required/diffxml-js.js',
-//              editor.plugins['coops-dmp'].path + 'required/md5.js'
-            ];
-          },
           
           _createChecksum: function (value) {
             return hex_md5(value);
