@@ -642,7 +642,7 @@
          * @returns {ChangeObserver} change observer
          */
         getChangeObserver : function() {
-          return editor._changeObserver;
+          return this._changeObserver;
         }
       });
       
