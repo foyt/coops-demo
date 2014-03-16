@@ -14,7 +14,7 @@
     
   CKEDITOR.plugins.add( 'coops-dmp', {
     requires: ['coops'],
-    init: function( editor ) { 
+    init: function( editorInstance ) { 
       CKEDITOR.coops.DmpDifferenceAlgorithm = CKEDITOR.tools.createClass({   
         base: CKEDITOR.coops.Feature,
         $: function(editor) { 
@@ -163,7 +163,9 @@
           },
           
           _applyPatch: function (patch, patchChecksum, revisionNumber, callback) {
-            this.getEditor().document.$.normalize();
+            var editor = this.getEditor();
+            
+            editor.document.$.normalize();
             var currentContent = this.getEditor().getData();
             var patchBaseContent = this.getEditor().getCoOps().getSavedContent();
             if (patchBaseContent === null) {
@@ -180,15 +182,15 @@
               var remotePatchedText = removePatchResult[0];
               var remotePatchedChecksum = this._createChecksum(remotePatchedText);
               
-              if (patchChecksum != remotePatchedChecksum) {
+              if (patchChecksum !== remotePatchedChecksum) {
                 if (window.console) {
                   console.log([
-                    "Reverting document because checksum did not match", 
-                    patchBaseContent, 
-                    patch, 
+                    "Reverting document because checksum did not match",
+                    patchBaseContent,
+                    patch,
                     revisionNumber,
                     patchChecksum,
-                    remotePatchedChecksum, 
+                    remotePatchedChecksum,
                     remotePatchedText
                   ]);
                 }
@@ -281,10 +283,11 @@
           },
           
           _onRevertedContentReceived: function (event) {
+            var editor = event.editor;
             var revertedContent = event.data.content;
-
             var localPatch = null;
             var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
+            // TODO: currentContent is undefined...
 
             if (locallyChanged) {
               if (window.console) {
@@ -327,7 +330,7 @@
         }
       });
       
-      editor.on('CoOPS:BeforeJoin', function(event) {
+      editorInstance.on('CoOPS:BeforeJoin', function(event) {
         event.data.addAlgorithm(new CKEDITOR.coops.DmpDifferenceAlgorithm(event.editor));
       });
     }
