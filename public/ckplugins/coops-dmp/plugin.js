@@ -1,5 +1,17 @@
 (function() {
   
+  if ((typeof diff_match_patch) == 'undefined') {
+    alert('diff_match_patch is missing');
+  }
+
+  if ((typeof Fmes) == 'undefined') {
+    alert('Fmes is missing');
+  }
+
+  if ((typeof hex_md5) == 'undefined') {
+    alert('hex_md5 is missing');
+  }
+    
   CKEDITOR.plugins.add( 'coops-dmp', {
     requires: ['coops'],
     init: function( editor ) { 
@@ -20,9 +32,9 @@
           },
           getRequiredScripts: function () {
             return [
-              editor.plugins['coops-dmp'].path + 'required/diff_match_patch.js', 
-              editor.plugins['coops-dmp'].path + 'required/diffxml-js.js',
-              editor.plugins['coops-dmp'].path + 'required/md5.js'
+//              editor.plugins['coops-dmp'].path + 'required/diff_match_patch.js', 
+//              editor.plugins['coops-dmp'].path + 'required/diffxml-js.js',
+//              editor.plugins['coops-dmp'].path + 'required/md5.js'
             ];
           },
           
