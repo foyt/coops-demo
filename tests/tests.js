@@ -24,7 +24,7 @@
   var app = express();
   var httpServer = http.createServer(app);
   app.configure(function () {
-    app.use(express.logger());
+    // app.use(express.logger());
     app.use(app.router);
     app.use(express.static(__dirname + '/public'));
     app.use(express.static(__dirname + '/../public'));
