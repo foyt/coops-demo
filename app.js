@@ -134,4 +134,9 @@
     app.get('/files/:fileid/join', [auth.loggedInNoRedirect, nocache], api.fileJoin);
   });
   
+  app.configure('development', function(){
+    app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
+    app.use(express.static(__dirname + '/public_test'));
+  });
+  
 }).call(this);
