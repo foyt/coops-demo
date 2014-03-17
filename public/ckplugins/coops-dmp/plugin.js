@@ -1,26 +1,28 @@
 (function() {
   
-  if ((typeof diff_match_patch) == 'undefined') {
+  /* global CKEDITOR, diff_match_patch, Fmes, hex_md5, InternalPatch */
+  
+  if ((typeof diff_match_patch) === 'undefined') {
     alert('diff_match_patch is missing');
   }
 
-  if ((typeof Fmes) == 'undefined') {
+  if ((typeof Fmes) === 'undefined') {
     alert('Fmes is missing');
   }
 
-  if ((typeof hex_md5) == 'undefined') {
+  if ((typeof hex_md5) === 'undefined') {
     alert('hex_md5 is missing');
   }
     
   CKEDITOR.plugins.add( 'coops-dmp', {
     requires: ['coops'],
-    init: function( editorInstance ) { 
-      CKEDITOR.coops.DmpDifferenceAlgorithm = CKEDITOR.tools.createClass({   
+    init: function( editorInstance ) {
+      CKEDITOR.coops.DmpDifferenceAlgorithm = CKEDITOR.tools.createClass({
         base: CKEDITOR.coops.Feature,
-        $: function(editor) { 
+        $: function(editor) {
           this.base(editor);
           
-          this._pendingPatches = new Array();
+          this._pendingPatches = [];
           this._contentCooldownTime = 200;
           this._contentCoolingDown = false;
 
@@ -51,7 +53,7 @@
 
             this.getEditor().fire("CoOPS:ContentPatch", {
               patch: patch
-            });  
+            });
           },
         
           _onContentChange: function (event) {
@@ -83,30 +85,31 @@
           
           _applyChanges: function (text, newText) {
             // TODO: cross-browser support for document creation
+            var editor = this.getEditor();
 
             if (!text) {
               // We do not have old content so we can just directly set new content as editor data
-              this.getEditor().setData(newText);
+              editor.setData(newText);
             } else {
               var newTextChecksum = this._createChecksum(newText);
               
               // Read original and patched texts into html documents
               var document1 = document.implementation.createHTMLDocument('');
               var document2 = document.implementation.createHTMLDocument('');
-              document1.documentElement.innerHTML = this.getEditor().dataProcessor.toHtml( text );
-              document2.documentElement.innerHTML = this.getEditor().dataProcessor.toHtml( newText );
+              document1.documentElement.innerHTML = editor.dataProcessor.toHtml( text );
+              document2.documentElement.innerHTML = editor.dataProcessor.toHtml( newText );
   
               // Create delta of two created documents
               var delta = this._fmes.diff(document1, document2);
               
               // And apply delta into a editor
-              (new InternalPatch()).apply(this.getEditor().document.$, delta);
+              (new InternalPatch()).apply(editor.document.$, delta);
   
               // Calculate checksum of patched editor content
-              var patchedData = this.getEditor().getData();
+              var patchedData = editor.getData();
               var patchedDataChecksum = this._createChecksum(patchedData);
               
-              if (newTextChecksum != patchedDataChecksum) {
+              if (newTextChecksum !== patchedDataChecksum) {
                 if (window.console) {
                   console.log(["XmlDiffJs patching did not go well, falling back to setData", 
                                text, 
@@ -114,12 +117,14 @@
                                patchedData, 
                                delta.toDUL()]);
                 }
+                
                 // XmlDiffJs patching did not go well, falling back to setData 
-                this.getEditor().setData(newText);
+                editor.setData(newText);
               } 
               
-              var appliedChecksum = this._createChecksum(this.getEditor().getData());
+              var appliedChecksum = this._createChecksum(editor.getData());
               if (newTextChecksum != appliedChecksum) {
+                // TODO: Shouldn't this lead into revert?
                 if (window.console) {
                   console.log("appliedChecksum does not match newTextChecksum " + appliedChecksum + " != " + newTextChecksum);
                 }
