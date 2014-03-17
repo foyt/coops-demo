@@ -23,7 +23,8 @@
         extraPlugins: 'coops,coops-dmp,coops-mock-connector',
         readOnly: true,
         coops: {
-          serverUrl: 'dummy'
+          serverUrl: 'dummy',
+          mode: 'development'
         }
       });
       
