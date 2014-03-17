@@ -62,7 +62,7 @@
               
               var oldContent = event.data.oldContent;
               var currentContent = event.data.currentContent;
-              
+
               this._emitContentPatch(oldContent, currentContent);
 
               CKEDITOR.tools.setTimeout(function() {
@@ -83,6 +83,17 @@
             }
           },
           
+          _removeLineBreaks: function (data) {
+            return (data||'').replace(/\n/g,"");
+          },
+          
+          _createDocument: function (html) {
+            var editor = this.getEditor();
+            var result = document.implementation.createHTMLDocument('');
+            result.documentElement.innerHTML = editor.dataProcessor.toHtml( html );
+            return result;
+          },
+          
           _applyChanges: function (text, newText) {
             // TODO: cross-browser support for document creation
             var editor = this.getEditor();
@@ -91,42 +102,25 @@
               // We do not have old content so we can just directly set new content as editor data
               editor.setData(newText);
             } else {
-              var newTextChecksum = this._createChecksum(newText);
+              if (editor.config.coops.mode === 'development') {
+                newText = this._removeLineBreaks(newText);
+              }
               
               // Read original and patched texts into html documents
-              var document1 = document.implementation.createHTMLDocument('');
-              var document2 = document.implementation.createHTMLDocument('');
-              document1.documentElement.innerHTML = editor.dataProcessor.toHtml( text );
-              document2.documentElement.innerHTML = editor.dataProcessor.toHtml( newText );
-  
+              var originalDocument = this._createDocument(text);
+              var patchedDocument = this._createDocument(newText);
+              
               // Create delta of two created documents
-              var delta = this._fmes.diff(document1, document2);
+              var delta = this._fmes.diff(originalDocument, patchedDocument);
               
               // And apply delta into a editor
               (new InternalPatch()).apply(editor.document.$, delta);
-  
-              // Calculate checksum of patched editor content
-              var patchedData = editor.getData();
-              var patchedDataChecksum = this._createChecksum(patchedData);
               
-              if (newTextChecksum !== patchedDataChecksum) {
-                if (window.console) {
-                  console.log(["XmlDiffJs patching did not go well, falling back to setData", 
-                               text, 
-                               newText, 
-                               patchedData, 
-                               delta.toDUL()]);
-                }
-                
-                // XmlDiffJs patching did not go well, falling back to setData 
-                editor.setData(newText);
-              } 
-              
-              var appliedChecksum = this._createChecksum(editor.getData());
-              if (newTextChecksum != appliedChecksum) {
-                // TODO: Shouldn't this lead into revert?
-                if (window.console) {
-                  console.log("appliedChecksum does not match newTextChecksum " + appliedChecksum + " != " + newTextChecksum);
+              if (editor.config.coops.mode === 'development') {
+                var newTextChecksum = this._createChecksum(newText);
+                var patchedDataChecksum = this._createChecksum(this._removeLineBreaks(editor.getData()));
+                if (newTextChecksum !== patchedDataChecksum) {
+                  throw new Error("Patching failed");
                 }
               }
             }
@@ -223,8 +217,12 @@
                     try {
                       this._applyChanges(currentContent, locallyPatchedText);
                     } catch (e) {
-                      // Change applying of changed crashed, falling back to setData
-                      editor.setData(locallyPatchedText);
+                      if (editor.config.coops.mode === 'development') {
+                        throw new Error(e);
+                      } else {
+                        // Change applying of changed crashed, falling back to setData
+                        editor.setData(locallyPatchedText);
+                      }
                     }
 
                     callback();
@@ -233,8 +231,12 @@
                   try {
                     this._applyChanges(currentContent, remotePatchedText);
                   } catch (e) {
-                    // Change applying of changed crashed, falling back to setData
-                    editor.setData(remotePatchedText);
+                    if (editor.config.coops.mode === 'development') {
+                      throw new Error(e);
+                    } else {
+                      // Change applying of changed crashed, falling back to setData
+                      editor.setData(remotePatchedText);
+                    }
                   }
                   
                   callback();
