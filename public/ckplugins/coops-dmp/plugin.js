@@ -176,11 +176,11 @@
               }
             }
             
-            var remoteDiff = this._diffMatchPatch.patch_fromText(patch);
-            var removePatchResult = this._diffMatchPatch.patch_apply(remoteDiff, patchBaseContent);
+            var remotePatch = this._diffMatchPatch.patch_fromText(patch);
+            var remotePatchResult = this._diffMatchPatch.patch_apply(remotePatch, patchBaseContent);
             
-            if (this._isPatchApplied(removePatchResult)) {
-              var remotePatchedText = removePatchResult[0];
+            if (this._isPatchApplied(remotePatchResult)) {
+              var remotePatchedText = remotePatchResult[0];
               var remotePatchedChecksum = this._createChecksum(remotePatchedText);
               
               if (patchChecksum !== remotePatchedChecksum) {
