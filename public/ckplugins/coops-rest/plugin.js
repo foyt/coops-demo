@@ -67,7 +67,6 @@
                   // Request was ok
                 break;
                 case 409:
-                  this.getEditor().getChangeObserver().resume();
                   this.getEditor().fire("CoOPS:PatchRejected");
                 break;
                 default:
@@ -101,7 +100,6 @@
                   // Request was ok
                 break;
                 case 409:
-                  this.getEditor().getChangeObserver().resume();
                   this.getEditor().fire("CoOPS:PatchRejected");
                 break;
                 default:
@@ -218,8 +216,6 @@
             } else {
               // Our patch was accepted, yay!
               this._revisionNumber = patch.revisionNumber;
-
-              this.getEditor().getChangeObserver().resume();
               this.getEditor().fire("CoOPS:PatchAccepted", {
                 revisionNumber: this._revisionNumber
               });

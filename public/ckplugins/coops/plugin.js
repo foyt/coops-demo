@@ -43,7 +43,10 @@
       
       this._editor.on('contentChange', $.proxy(function(event) {
         this.setUnsavedContent(event.data.currentContent);
-        this._editor.fire("CoOPS:ContentDirty");
+        this._editor.fire("CoOPS:ContentDirty", {
+          savedContent: this.getSavedContent(),
+          unsavedContent: this.getUnsavedContent()
+        });
       }, this));
     
       this._editor.on('CoOPS:SessionStart', $.proxy(function(event) {
@@ -51,7 +54,12 @@
       }, this));
 
       this._editor.on('CoOPS:PatchAccepted', $.proxy(function(event) {
-        this.setSavedContent(this._editor.getData());
+        this.setSavedContent(this.getUnsavedContent());
+        this.getEditor().getChangeObserver().resume();
+      }, this));
+
+      this._editor.on('CoOPS:PatchRejected', $.proxy(function(event) {
+        this.getEditor().getChangeObserver().resume();
       }, this));
 
       this._editor.on('CoOPS:ContentReverted', $.proxy(function(event) {
@@ -62,6 +70,17 @@
         this.setSavedContent(event.data.content);
       }, this));
 
+      this._editor.on('CoOPS:PatchMerged', $.proxy(function(event) {
+        this.setUnsavedContent(event.data.merged);
+        this.setSavedContent(event.data.patched);
+        
+        this._editor.fire("CoOPS:ContentDirty", {
+          savedContent: event.data.patched,
+          unsavedContent: event.data.merged
+        });
+        
+      }, this));
+      
       this._editor.on("CoOPS:Joined", $.proxy(function (event) {
         var content = event.data.content;
         

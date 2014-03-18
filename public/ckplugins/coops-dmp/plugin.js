@@ -41,7 +41,7 @@
             this._diffMatchPatch = new diff_match_patch();
             this._fmes = new Fmes();
             
-            this.getEditor().on("contentChange", this._onContentChange, this);
+            this.getEditor().on("CoOPS:ContentDirty", this._onContentDirty, this);
             this.getEditor().on("CoOPS:PatchReceived", this._onPatchReceived, this);
             this.getEditor().on("CoOPS:RevertedContentReceived", this._onRevertedContentReceived, this);
           },
@@ -56,30 +56,30 @@
             });
           },
         
-          _onContentChange: function (event) {
+          _onContentDirty: function (event) {
             if (!this._contentCoolingDown) {
               this._contentCoolingDown = true;
               
-              var oldContent = event.data.oldContent;
-              var currentContent = event.data.currentContent;
+              var savedContent = event.data.savedContent;
+              var unsavedContent = event.data.unsavedContent;
 
-              this._emitContentPatch(oldContent, currentContent);
+              this._emitContentPatch(savedContent, unsavedContent);
 
               CKEDITOR.tools.setTimeout(function() {
-                if (this._pendingOldContent && this._pendingNewContent) {
-                  this._emitContentPatch(this._pendingOldContent, this._pendingNewContent);
-                  delete this._pendingOldContent;
-                  delete this._pendingNewContent;
+                if (this._pendingSavedContent && this._pendingUnsavedContent) {
+                  this._emitContentPatch(this._pendingSavedContent, this._pendingUnsavedContent);
+                  delete this._pendingSavedContent;
+                  delete this._pendingUnsavedContent;
                 }
                 
                 this._contentCoolingDown = false;
               }, this._contentCooldownTime, this);
             } else {
-              if (!this._pendingOldContent) {
-                this._pendingOldContent = event.data.oldContent;
+              if (!this._pendingSavedContent) {
+                this._pendingSavedContent = event.data.savedContent;
               }
               
-              this._pendingNewContent = event.data.currentContent;
+              this._pendingUnsavedContent = event.data.unsavedContent;
             }
           },
           
@@ -115,10 +115,12 @@
               
               // And apply delta into a editor
               (new InternalPatch()).apply(editor.document.$, delta);
+              editor._.data = editor.document.getBody().getHtml();
               
               if (editor.config.coops.mode === 'development') {
                 var newTextChecksum = this._createChecksum(newText);
-                var patchedDataChecksum = this._createChecksum(this._removeLineBreaks(editor.getData()));
+                var patchedText = this._removeLineBreaks(editor.getData(true));
+                var patchedDataChecksum = this._createChecksum(patchedText);
                 if (newTextChecksum !== patchedDataChecksum) {
                   throw new Error("Patching failed");
                 }
@@ -225,8 +227,14 @@
                       }
                     }
 
-                    callback();
+                    editor.fire("CoOPS:PatchMerged", {
+                      patched : remotePatchedText,
+                      merged: locallyPatchedText
+                    });
+                    
                   }
+
+                  callback();
                 } else {
                   try {
                     this._applyChanges(currentContent, remotePatchedText);
@@ -238,13 +246,13 @@
                       editor.setData(remotePatchedText);
                     }
                   }
+
+                  editor.fire("CoOPS:PatchApplied", {
+                    content : remotePatchedText
+                  });
                   
                   callback();
                 }
-
-                editor.fire("CoOPS:PatchApplied", {
-                  content : remotePatchedText
-                });
               }
               
             } else {
