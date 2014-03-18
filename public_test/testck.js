@@ -23,12 +23,15 @@
         extraPlugins: 'coops,coops-dmp,coops-mock-connector',
         readOnly: true,
         coops: {
-          serverUrl: 'dummy',
-          mode: 'development'
+          serverUrl: '-',
+          mode: 'development',
+          mock: {
+            mockPostRequest: $.proxy(this._mockPostRequest, this),
+            mockGetRequest: $.proxy(this._mockGetRequest, this),
+            mockPatchRequest: $.proxy(this._mockPatchRequest, this)
+          }
         }
       });
-      
-      this._editor.on("CoOPS:ContentPatch", $.proxy(this._onCoOPSContentPatch, this));
       
       this.element.append($('<div>')
         .addClass('ck-actions')
@@ -36,69 +39,60 @@
       );
     },
     
-    sessionId: function () {
-      return this._editor._mock._sessionId;
-    },
-    
-    revisionNumber: function () {
-      return this._editor._mock._revisionNumber;
-    },
-    
-    _onCoOPSContentPatch: function (event) {
-      this._editor.getChangeObserver().pause();
+    _mockGetRequest: function (url, parameters, callback) {
+      console.log([url, parameters]);
       
-      $('#server').TestServer('patch', this.sessionId(), this.revisionNumber(), event.data.patch, {}, {}, $.proxy(function (status) {
-        switch (status) {
-          case 204:
-            // Request was ok
-          break;
-          case 409:
-            this._editor.getChangeObserver().resume();
-            this._editor.fire("CoOPS:PatchRejected");
-          break;
-          default:
-            this._editor.fire("CoOPS:Error", {
-              type: "patch",
-              error: 'patch error'
-            });
-          break;
-        }
+      var paramMap = {};
+      $.each(parameters, function (i, parameter) {
+        paramMap[parameter.name] = parameter.value;
+      });
+      
+      if (url === '-/join') {
+        this._mockJoin(paramMap, callback);
+      } else if (url === '-/update') {
+        this._mockUpdate(paramMap, callback);
+      } else {
+        console.log(["mock-get", url, parameters, callback]);
+      }
+    },
+    
+    _mockPostRequest: function (url, object, callback) {
+      console.log(["mock-post", url, object, callback]);
+    },
+    
+    _mockPatchRequest: function (url, parameters, callback) {
+      $('#server').TestServer('patch', parameters.sessionId, parameters.revisionNumber, parameters.patch, parameters.properties, parameters.extensions, $.proxy(function (status) {
+        callback(status);
       }, this));
     },
     
+    _mockJoin: function (paramMap, callback) {
+      var status = 200;
+      var response = {
+        sessionId: hex_md5(String(Math.random() * 10000)),
+        algorithm: "dmp",
+        revisionNumber: 0,
+        content: '',
+        contentType: "text/html;editor=CKEditor",
+        properties: {},
+        extensions: {}
+      };
+      
+      // TODO: paramMap.algorithm
+      // TODO: paramMap.protocolVersion
+      
+      callback(status, response, null);
+    },
+    
+    _mockUpdate: function (paramMap, callback) {
+      $('#server').TestServer('updates', paramMap.revisionNumber, $.proxy(function (status, patches) {
+        callback(status, patches, null);
+      }, this));
+    },
+
     _onUpdateClick: function (event) {
       event.preventDefault();
-      
-      $('#server').TestServer('updates', this._editor._mock._revisionNumber, $.proxy(function (status, patches) {
-        if (status === 200) {
-          for (var i = 0, l = patches.length; i < l; i++) {
-            var patch = patches[i];
-            
-            if (this._editor._mock._sessionId !== patch.sessionId) {
-              if (this._editor.fire("CoOPS:PatchReceived", {
-                patch : patch.patch,
-                checksum: patch.checksum,
-                revisionNumber: patch.revisionNumber,
-                properties: patch.properties
-              })) {
-                this._editor._mock._revisionNumber = patch.revisionNumber;
-              }
-            } else {
-              this._editor._mock._revisionNumber = patch.revisionNumber;
-              this._editor.getChangeObserver().resume();
-              this._editor.fire("CoOPS:PatchAccepted", { });
-            }
-          }
-        } else {
-          if ((status !== 204)&&(status !== 304)) {
-            this._editor.fire("CoOPS:Error", {
-              type: "update",
-              error: 'update error'
-            });
-          }
-        }
-      }, this));
-      
+      this._editor.checkUpdates();
     },
     
     _destroy : function() {
