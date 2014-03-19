@@ -94,9 +94,10 @@
             return result;
           },
           
-          _applyChanges: function (text, newText) {
+          _applyChanges: function (newText) {
             // TODO: cross-browser support for document creation
             var editor = this.getEditor();
+            var text = editor.getData();
 
             if (!text) {
               // We do not have old content so we can just directly set new content as editor data
@@ -109,13 +110,13 @@
               // Read original and patched texts into html documents
               var originalDocument = this._createDocument(text);
               var patchedDocument = this._createDocument(newText);
-              
+
               // Create delta of two created documents
               var delta = this._fmes.diff(originalDocument, patchedDocument);
               
               // And apply delta into a editor
               (new InternalPatch()).apply(editor.document.$, delta);
-              editor._.data = null;
+              editor._.data = editor.dataProcessor.toHtml( editor.document.getBody().$.innerHTML );
 
               if (editor.config.coops.mode === 'development') {
                 var newTextChecksum = this._createChecksum(newText);
@@ -224,7 +225,7 @@
                 var locallyPatchedText = localPatchResult[0];
                 
                 try {
-                  this._applyChanges(savedContent, locallyPatchedText);
+                  this._applyChanges(locallyPatchedText);
                 } catch (e) {
                   if (editor.config.coops.mode === 'development') {
                     throw new Error(e);
@@ -245,7 +246,7 @@
               }
             } else {
               try {
-                this._applyChanges(savedContent, remotePatchedText);
+                this._applyChanges(remotePatchedText);
               } catch (e) {
                 if (editor.config.coops.mode === 'development') {
                   editor.setData(remotePatchedText);
@@ -322,7 +323,7 @@
             }
 
             try {
-              this._applyChanges(savedContent, revertedContent);
+              this._applyChanges(revertedContent);
             } catch (e) {
               // Change applying of changed crashed, falling back to setData
               editor.setData(revertedContent);
