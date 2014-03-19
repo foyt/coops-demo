@@ -74,12 +74,6 @@
         this.setUnsavedContent(event.data.merged);
         this.setSavedContent(event.data.patched);
         this.getEditor().getChangeObserver().reset(event.data.merged);
-        
-        this._editor.fire("CoOPS:ContentDirty", {
-          savedContent: event.data.patched,
-          unsavedContent: event.data.merged
-        });
-        
       }, this));
       
       this._editor.on("CoOPS:Joined", $.proxy(function (event) {
