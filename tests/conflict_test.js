@@ -51,6 +51,33 @@
       });
     });
   
+    test.it("Partly matching conflict", function () {
+      // Type 'abc' into ck1 and click update
+      driver.switchTo().frame(driver.findElement(ck1Frame));
+      driver.findElement(webdriver.By.tagName('body')).sendKeys("abc");
+      driver.switchTo().defaultContent();
+      driver.findElement(webdriver.By.css('#ck1 .ck-action-update')).click();
+
+      // Type 'abd' into ck2 and click update
+      driver.switchTo().frame(driver.findElement(ck2Frame));
+      driver.findElement(webdriver.By.tagName('body')).sendKeys("abd");
+      driver.switchTo().defaultContent();
+      driver.findElement(webdriver.By.css('#ck2 .ck-action-update')).click();
+
+      // Both editors and server should contain text <p>abc</p>
+      utils.getCKData(driver, ck1Frame, function (data) {
+        assert.equal(data, '<p>abc</p>');
+      });
+
+      utils.getCKData(driver, ck2Frame, function (data) {
+        assert.equal(data, '<p>abc</p>');
+      });
+      
+      driver.findElement(webdriver.By.css('.ck-content')).getAttribute('value').then(function(value) {
+        assert.equal(value, '<p>abc</p>\n');
+      });
+    });
+  
   });
   
 }).call(this);
