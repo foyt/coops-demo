@@ -26,7 +26,6 @@
           serverUrl: '-',
           mode: 'development',
           mock: {
-            mockPostRequest: $.proxy(this._mockPostRequest, this),
             mockGetRequest: $.proxy(this._mockGetRequest, this),
             mockPatchRequest: $.proxy(this._mockPatchRequest, this)
           }
@@ -40,8 +39,6 @@
     },
     
     _mockGetRequest: function (url, parameters, callback) {
-      console.log([url, parameters]);
-      
       var paramMap = {};
       $.each(parameters, function (i, parameter) {
         paramMap[parameter.name] = parameter.value;
@@ -56,12 +53,9 @@
       }
     },
     
-    _mockPostRequest: function (url, object, callback) {
-      console.log(["mock-post", url, object, callback]);
-    },
-    
     _mockPatchRequest: function (url, parameters, callback) {
       $('#server').TestServer('patch', parameters.sessionId, parameters.revisionNumber, parameters.patch, parameters.properties, parameters.extensions, $.proxy(function (status) {
+        console.log(['patch', url, parameters, status]);
         callback(status);
       }, this));
     },
@@ -69,7 +63,7 @@
     _mockJoin: function (paramMap, callback) {
       var status = 200;
       var response = {
-        sessionId: hex_md5(String(Math.random() * 10000)),
+        sessionId: this.element.attr('id') + '-' + hex_md5(String(Math.random() * 10000)),
         algorithm: "dmp",
         revisionNumber: 0,
         content: '',
