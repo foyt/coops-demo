@@ -28,3 +28,7 @@
 .ck-actions a {
   margin-left: 10px;
 }
+
+.ck-content {
+  min-height: 100px;
+}
