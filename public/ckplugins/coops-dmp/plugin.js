@@ -3,15 +3,15 @@
   /* global CKEDITOR, diff_match_patch, Fmes, hex_md5, InternalPatch */
   
   if ((typeof diff_match_patch) === 'undefined') {
-    alert('diff_match_patch is missing');
+    throw new Error('diff_match_patch is missing');
   }
 
   if ((typeof Fmes) === 'undefined') {
-    alert('Fmes is missing');
+    throw new Error('Fmes is missing');
   }
 
   if ((typeof hex_md5) === 'undefined') {
-    alert('hex_md5 is missing');
+    throw new Error('hex_md5 is missing');
   }
     
   CKEDITOR.plugins.add( 'coops-dmp', {
@@ -115,8 +115,8 @@
               
               // And apply delta into a editor
               (new InternalPatch()).apply(editor.document.$, delta);
-              editor._.data = editor.document.getBody().getHtml();
-              
+              editor._.data = null;
+
               if (editor.config.coops.mode === 'development') {
                 var newTextChecksum = this._createChecksum(newText);
                 var patchedText = this._removeLineBreaks(editor.getData());
@@ -144,19 +144,19 @@
           _unlockEditor: function () {
             var editor = this.getEditor();
             var body = editor.document.getBody();
-            if (body.data('was-readonly') == 1) {
+            if (body.data('was-readonly')) {
               body.data('was-readonly', false);
             } else {
               body.data('cke-editable', false);
             }
             
             editor.getChangeObserver().reset();
-            editor.getChangeObserver().resume();  
+            editor.getChangeObserver().resume();
           },
           
           _isPatchApplied: function (patchResult) {
             for (var j = 0, jl = patchResult[1].length; j < jl; j++) {
-              if (patchResult[1][j] == false) {
+              if (!patchResult[1][j]) {
                 return false;
               }
             }
@@ -250,7 +250,7 @@
                 if (editor.config.coops.mode === 'development') {
                   editor.setData(remotePatchedText);
                   throw new Error(e);
-                } 
+                }
                 
                 // Change applying of changed crashed, falling back to setData
                 editor.setData(remotePatchedText);
@@ -302,24 +302,16 @@
             var revertedContent = event.data.content;
             var localPatch = null;
             var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
-            // TODO: currentContent is undefined...
+            var savecContent = this.getEditor().getCoOps().getSavedContent();
 
             if (locallyChanged) {
               if (window.console) {
                 console.log("Content reverted but we have local changes");
               }
               
-              var patchBaseContent = this.getEditor().getCoOps().getSavedContent();
-              if (patchBaseContent === null) {
-                patchBaseContent = currentContent;
-                if (window.console) {
-                  console.log("Saved content missing. Patching against current content");
-                }
-              }
-              
-              var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this.getEditor().getCoOps().getUnsavedContent());
+              var localDiff = this._diffMatchPatch.diff_main(savecContent, this.getEditor().getCoOps().getUnsavedContent());
               this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-              localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
+              localPatch = this._diffMatchPatch.patch_make(savecContent, localDiff);
             }
             
             if (localPatch) {
@@ -330,7 +322,7 @@
             }
 
             try {
-              this._applyChanges(currentContent, revertedContent);
+              this._applyChanges(savecContent, revertedContent);
             } catch (e) {
               // Change applying of changed crashed, falling back to setData
               editor.setData(revertedContent);
