@@ -20,12 +20,7 @@
       height: 500,
       coops: {
         serverUrl: serverUrl,
-        websocket: {
-          cursorsVisible: true,
-          cursorAlpha: 0.9,
-          cursorBlinks: true,
-          cursorBlinkInterval: 1.2
-        }
+        mode: 'production'
       }
     });
     
