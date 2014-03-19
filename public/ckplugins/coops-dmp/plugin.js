@@ -302,16 +302,16 @@
             var revertedContent = event.data.content;
             var localPatch = null;
             var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
-            var savecContent = this.getEditor().getCoOps().getSavedContent();
+            var savedContent = this.getEditor().getCoOps().getSavedContent();
 
             if (locallyChanged) {
               if (window.console) {
                 console.log("Content reverted but we have local changes");
               }
               
-              var localDiff = this._diffMatchPatch.diff_main(savecContent, this.getEditor().getCoOps().getUnsavedContent());
+              var localDiff = this._diffMatchPatch.diff_main(savedContent, this.getEditor().getCoOps().getUnsavedContent());
               this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-              localPatch = this._diffMatchPatch.patch_make(savecContent, localDiff);
+              localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
             }
             
             if (localPatch) {
@@ -322,7 +322,7 @@
             }
 
             try {
-              this._applyChanges(savecContent, revertedContent);
+              this._applyChanges(savedContent, revertedContent);
             } catch (e) {
               // Change applying of changed crashed, falling back to setData
               editor.setData(revertedContent);
