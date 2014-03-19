@@ -163,104 +163,102 @@
             return true;
           },
           
+          _patchesEqual: function (patch1, patch2) {
+            if (patch1.length === patch2.length) {
+              for (var i = 0, l = patch1.length; i < l; i++) {
+                var diffs1 = patch1[i].diffs;
+                var diffs2 = patch2[i].diffs;
+                
+                if (diffs1.length === diffs2.length) {
+                  for (var j = 0, dl = diffs1.length; j < dl; j++) {
+                    if ((diffs1[j][0] !== diffs2[j][0])||(diffs1[j][1] !== diffs2[j][1])) {
+                      return false;
+                    }
+                  }
+                } else {
+                  return false;
+                }
+              }
+              
+              return true;
+            }
+            
+            return false;
+          },
+          
           _applyPatch: function (patch, patchChecksum, revisionNumber, callback) {
             var editor = this.getEditor();
-            
             editor.document.$.normalize();
-            var currentContent = this.getEditor().getData();
-            var patchBaseContent = this.getEditor().getCoOps().getSavedContent();
-            if (patchBaseContent === null) {
-              patchBaseContent = currentContent;
-              if (window.console) {
-                console.log("Saved content missing. Patching against current content");
+            
+            var remotePatchedText = null;
+            var savedContent = this.getEditor().getCoOps().getSavedContent();
+            var remotePatch = this._diffMatchPatch.patch_fromText(patch);
+            var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
+            var localPatch = null;
+            
+            if (locallyChanged) {
+              var unsavedContent = this.getEditor().getCoOps().getUnsavedContent();
+              var localDiff = this._diffMatchPatch.diff_main(savedContent, unsavedContent);
+              localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
+              
+              if (this._patchesEqual(remotePatch, localPatch)) {
+                localPatch = null;
               }
             }
             
-            var remotePatch = this._diffMatchPatch.patch_fromText(patch);
-            var remotePatchResult = this._diffMatchPatch.patch_apply(remotePatch, patchBaseContent);
-            
+            var remotePatchResult = this._diffMatchPatch.patch_apply(remotePatch, savedContent);
             if (this._isPatchApplied(remotePatchResult)) {
-              var remotePatchedText = remotePatchResult[0];
+              remotePatchedText = remotePatchResult[0];
               var remotePatchedChecksum = this._createChecksum(remotePatchedText);
-              
               if (patchChecksum !== remotePatchedChecksum) {
-                if (window.console) {
-                  console.log([
-                    "Reverting document because checksum did not match",
-                    patchBaseContent,
-                    patch,
-                    revisionNumber,
-                    patchChecksum,
-                    remotePatchedChecksum,
-                    remotePatchedText
-                  ]);
-                }
-
+                // Remove patching failed on saved content, revert is needed 
                 this.getEditor().fire("CoOPS:ContentRevert");
-              } else {
-                var localPatch = null;
-                var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
-
-                if (locallyChanged) {
-                  if (window.console) {
-                    console.log("Received a patch but we got some local changes");
+                return;
+              }
+            }
+            
+            if (localPatch) {
+              var localPatchResult = this._diffMatchPatch.patch_apply(localPatch, remotePatchedText);
+              if (this._isPatchApplied(localPatchResult)) {
+                var locallyPatchedText = localPatchResult[0];
+                
+                try {
+                  this._applyChanges(savedContent, locallyPatchedText);
+                } catch (e) {
+                  if (editor.config.coops.mode === 'development') {
+                    throw new Error(e);
+                  } else {
+                    // Change applying of changed crashed, falling back to setData
+                    editor.setData(locallyPatchedText);
                   }
-
-                  var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this.getEditor().getCoOps().getUnsavedContent());
-                  this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-                  localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
                 }
                 
-                if (localPatch) {
-                  var localPatchResult = this._diffMatchPatch.patch_apply(localPatch, remotePatchedText);
-                  if (this._isPatchApplied(localPatchResult)) {
-                    var locallyPatchedText = localPatchResult[0];
-                    
-                    try {
-                      this._applyChanges(currentContent, locallyPatchedText);
-                    } catch (e) {
-                      if (editor.config.coops.mode === 'development') {
-                        throw new Error(e);
-                      } else {
-                        // Change applying of changed crashed, falling back to setData
-                        editor.setData(locallyPatchedText);
-                      }
-                    }
-
-                    editor.fire("CoOPS:PatchMerged", {
-                      patched : remotePatchedText,
-                      merged: locallyPatchedText
-                    });
-                    
-                  }
-
-                  callback();
+                editor.fire("CoOPS:PatchMerged", {
+                  patched : remotePatchedText,
+                  merged: locallyPatchedText
+                });
+                
+                callback();
+              } else {
+                editor.fire("CoOPS:LocalChangesDiscarded");
+              }
+            } else {
+              try {
+                this._applyChanges(savedContent, remotePatchedText);
+              } catch (e) {
+                if (editor.config.coops.mode === 'development') {
+                  throw new Error(e);
                 } else {
-                  try {
-                    this._applyChanges(currentContent, remotePatchedText);
-                  } catch (e) {
-                    if (editor.config.coops.mode === 'development') {
-                      throw new Error(e);
-                    } else {
-                      // Change applying of changed crashed, falling back to setData
-                      editor.setData(remotePatchedText);
-                    }
-                  }
-
-                  editor.fire("CoOPS:PatchApplied", {
-                    content : remotePatchedText
-                  });
-                  
-                  callback();
+                  // Change applying of changed crashed, falling back to setData
+                  editor.setData(remotePatchedText);
                 }
               }
+      
+              editor.fire("CoOPS:PatchApplied", {
+                content : remotePatchedText
+              });
               
-            } else {
-              if (window.console) {
-                console.log("Reverting document because could not apply the patch");
-              }
-
-              this.getEditor().fire("CoOPS:ContentRevert");
+              callback();
             }
           },
           
