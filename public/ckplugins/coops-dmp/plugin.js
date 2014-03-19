@@ -119,9 +119,10 @@
               
               if (editor.config.coops.mode === 'development') {
                 var newTextChecksum = this._createChecksum(newText);
-                var patchedText = this._removeLineBreaks(editor.getData(true));
+                var patchedText = this._removeLineBreaks(editor.getData());
                 var patchedDataChecksum = this._createChecksum(patchedText);
                 if (newTextChecksum !== patchedDataChecksum) {
+                  console.log(["Patching Failed", newText, patchedText]);
                   throw new Error("Patching failed");
                 }
               }
@@ -247,11 +248,12 @@
                 this._applyChanges(savedContent, remotePatchedText);
               } catch (e) {
                 if (editor.config.coops.mode === 'development') {
-                  throw new Error(e);
-                } else {
-                  // Change applying of changed crashed, falling back to setData
                   editor.setData(remotePatchedText);
-                }
+                  throw new Error(e);
+                } 
+                
+                // Change applying of changed crashed, falling back to setData
+                editor.setData(remotePatchedText);
               }
       
               editor.fire("CoOPS:PatchApplied", {
