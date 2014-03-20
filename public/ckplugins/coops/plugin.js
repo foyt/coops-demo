@@ -15,9 +15,6 @@
       },
       getName: function () {
         return null;
-      },
-      getRequiredScripts: function () {
-        return null;
       }
     }
   });
@@ -79,27 +76,15 @@
         this.fire("CoOPS:BeforeJoin", beforeJoinEvent);
 
         var algorithmNames = new Array();
-        var requiredScripts = new Array();
         
         for (var i = 0, l = algorithms.length; i < l; i++) {
           algorithmNames.push(algorithms[i].getName());
-          if (algorithms[i].getRequiredScripts()) {
-            requiredScripts = requiredScripts.concat(algorithms[i].getRequiredScripts());
-          }
         }
         
-        for (var i = 0, l = connectors.length; i < l; i++) {
-          if (connectors[i].getRequiredScripts()) {
-            requiredScripts = requiredScripts.concat(connectors[i].getRequiredScripts());
-          }
-        }
-        
-        CKEDITOR.scriptLoader.load(requiredScripts, function (completed, failed) {
-          this.fire("CoOPS:Join", {
-            protocolVersion: PROTOCOL_VERSION,
-            algorithms: algorithmNames
-          });
-        }, this, true);
+        this.fire("CoOPS:Join", {
+          protocolVersion: PROTOCOL_VERSION,
+          algorithms: algorithmNames
+        });
       });
         
       editor.on('contentChange', function(event) {
