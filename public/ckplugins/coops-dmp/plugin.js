@@ -1,8 +1,22 @@
 (function() {
+  /* global CKEDITOR, diff_match_patch, Fmes, hex_md5, InternalPatch */
   
   CKEDITOR.plugins.add( 'coops-dmp', {
     requires: ['coops'],
     init: function( editor ) { 
+      
+      if ((typeof diff_match_patch) === 'undefined') {
+        throw new Error('diff_match_patch is missing');
+      }
+
+      if ((typeof Fmes) === 'undefined') {
+        throw new Error('Fmes is missing');
+      }
+
+      if ((typeof hex_md5) === 'undefined') {
+        throw new Error('hex_md5 is missing');
+      }
+        
       CKEDITOR.coops.DmpDifferenceAlgorithm = CKEDITOR.tools.createClass({   
         base: CKEDITOR.coops.Feature,
         $: function(editor) { 
@@ -17,13 +31,6 @@
         proto : {
           getName: function () {
             return "dmp";
-          },
-          getRequiredScripts: function () {
-            return [
-              editor.plugins['coops-dmp'].path + 'required/diff_match_patch.js', 
-              editor.plugins['coops-dmp'].path + 'required/diffxml-js.js',
-              editor.plugins['coops-dmp'].path + 'required/md5.js'
-            ];
           },
           
           _createChecksum: function (value) {
