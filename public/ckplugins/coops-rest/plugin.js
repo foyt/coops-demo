@@ -327,7 +327,7 @@
       },
       
       _applyPatch: function (patch, callback) {
-        if (this._sessionId != patch.sessionId) {
+        if (this._sessionId !== patch.sessionId) {
           // Received a patch from other client
           if (this._editor.fire("CoOPS:PatchReceived", {
             patch : patch.patch,
@@ -337,7 +337,7 @@
           })) {
             this._revisionNumber = patch.revisionNumber;
             callback();
-          };
+          }
         } else {
           // Our patch was accepted, yay!
           this._revisionNumber = patch.revisionNumber;
