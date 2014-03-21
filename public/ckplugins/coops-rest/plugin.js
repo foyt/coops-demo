@@ -1,5 +1,134 @@
 (function() {
 
+  /* global CKEDITOR, ActiveXObject, DefaultIOHandler: true, RestConnector:true */
+  
+  DefaultIOHandler = CKEDITOR.tools.createClass({
+    $: function(editor) {
+      editor.on("CoOPS:BeforeSessionStart", function (event) {
+        this._useMethodOverride = !!event.data.joinData.extensions['x-http-method-override'];
+      }, this);
+    },
+    proto : {
+      get: function (url, parameters, callback) {
+        this._doGetRequest(url, parameters, function (status, responseText) {
+          if ((status === 200) && (!responseText)) {
+            // Request was probably aborted...
+            return;
+          }
+          
+          if (status !== 200) {
+            callback(status, null, responseText);
+          } else {
+            callback(status, JSON.parse(responseText), null);
+          }
+        });
+      },
+      
+      patch: function (url, object, callback) {
+        this._doJsonPostRequest("PATCH", url, object, callback);
+      },
+      
+      _doJsonPostRequest: function (method, url, object, callback) {
+        var data = JSON.stringify(object);
+        
+        this._doPostRequest(method, url, data, 'application/json', function (status, responseText) {
+          if ((status === 200) && (!responseText)) {
+            // Request was probably aborted...
+            return;
+          }
+          
+          try {
+            if (status !== 200) {
+              callback(status, null, responseText);
+            } else {
+              var responseJson = JSON.parse(responseText);
+              callback(status, responseJson, null);
+            }
+          } catch (e) {
+            callback(status, null, e);
+          }
+        });
+      },
+  
+      _processParameters: function (parameters) {
+        var result = '';
+        if ((parameters) && (parameters.length > 0)) {
+          for (var i = 0, l = parameters.length; i < l; i++) {
+            if (i > 0) {
+              result += '&';
+            }
+            result += encodeURIComponent(parameters[i].name) + '=' + encodeURIComponent(parameters[i].value);
+          }
+        }
+        
+        return result;
+      },
+      
+      _doGetRequest: function (url, parameters, callback) {
+        var xhr = this._createXMLHttpRequest();
+        var async = true;
+        
+        xhr.open("get", url + ((parameters.length > 0) ? '?' + this._processParameters(parameters) : ''), async);
+        
+        if (async) {
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              callback(xhr.status, xhr.responseText);
+            }
+          };
+        }
+        
+        xhr.send(null);
+  
+        if (!async) {
+          callback(xhr.status, xhr.responseText);
+        }
+      },
+          
+      _doPostRequest: function (method, url, data, contentType, callback) {
+        var xhr = this._createXMLHttpRequest();
+        var async = true;
+        if (this._useMethodOverride && (method !== 'POST')) {
+          xhr.open("POST", url, async);
+          xhr.setRequestHeader("x-http-method-override", method);
+        } else {
+          xhr.open(method, url, async);
+        }
+        
+        xhr.setRequestHeader("Content-type", contentType);
+        
+        if (!CKEDITOR.env.webkit) {
+          // WebKit refuses to send these headers as unsafe
+          xhr.setRequestHeader("Content-length", data ? data.length : 0);
+          xhr.setRequestHeader("Connection", "close");
+        }
+        
+        if (async) {
+          xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+              callback(xhr.status, xhr.responseText);
+            }
+          };
+        }
+        
+        xhr.send(data);
+        
+        if (!async) {
+          callback(xhr.status, xhr.responseText);
+        }
+      },
+      
+      _createXMLHttpRequest: function() {
+        if ( !CKEDITOR.env.ie || location.protocol !== 'file:' ) {
+          try { return new XMLHttpRequest(); } catch(e) {}
+          try { return new ActiveXObject( 'Msxml2.XMLHTTP' ); } catch (e) {}
+          try { return new ActiveXObject( 'Microsoft.XMLHTTP' ); } catch (e) {}
+        }
+        return null;
+      }
+    }
+  });
+  
   CKEDITOR.plugins.add('coops-rest', {
     requires : [ 'coops' ],
     init : function(editor) {
@@ -8,6 +137,8 @@
         base : CKEDITOR.coops.Feature,
         $ : function(editor) {
           this.base(editor);
+          
+          this._ioHandler = editor.config.coops.restIOHandler||new DefaultIOHandler(editor);
           
           editor.on('CoOPS:Join', this._onCoOpsJoin, this);
           editor.on("CoOPS:BeforeSessionStart", this._onBeforeSessionStart, this, null, 9999);
@@ -36,7 +167,6 @@
             if (!event.data.isConnected()) {
               var joinData = event.data.joinData;
               
-              this._useMethodOverride = joinData.extensions['x-http-method-override'] != undefined;
               this._revisionNumber = joinData.revisionNumber;
               this._sessionId = joinData.sessionId;
 
@@ -57,8 +187,7 @@
             
             var patch = event.data.patch;
             this.getEditor().getChangeObserver().pause();
-            
-            this._doPatch(this._editor.config.coops.serverUrl, { patch: patch, revisionNumber : this._revisionNumber, sessionId: this._sessionId }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+            this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, revisionNumber : this._revisionNumber, sessionId: this._sessionId }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               switch (status) {
                 case 204:
                   // Request was ok
@@ -90,7 +219,7 @@
               properties[changedProperties[i].property] = changedProperties[i].currentValue;
             };
             
-            this._doPatch(this._editor.config.coops.serverUrl, { properties: properties, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+            this._ioHandler.patch(this._editor.config.coops.serverUrl, { properties: properties, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               switch (status) {
                 case 204:
                   // Request was ok
@@ -111,7 +240,7 @@
           _onContentRevert: function(event) {
             this.getEditor().getChangeObserver().pause();
             
-            this._doGet(this._editor.config.coops.serverUrl, { }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+            this._ioHandler.get(this._editor.config.coops.serverUrl, { }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               switch (status) {
                 case 200:
                   // Content reverted
@@ -151,7 +280,7 @@
           
             var url = this._editor.config.coops.serverUrl + '/join';
       
-            this._doGet(url, parameters, callback);
+            this._ioHandler.get(url, parameters, callback);
           },
           
           _startUpdatePolling: function () {
@@ -167,8 +296,8 @@
           },
           
           _pollUpdates : function(event) {
-            var url = this._editor.config.coops.serverUrl + '/update?revisionNumber=' + this._revisionNumber;
-            this._doGet(url, {}, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+            var url = this._editor.config.coops.serverUrl + '/update';
+            this._ioHandler.get(url, [{ name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               if (status == 200) {
                 this._applyPatches(responseJson);
               } else if ((status == 204) || (status == 304)) {
@@ -212,135 +341,6 @@
                 revisionNumber: this._revisionNumber
               });
             }
-          },
-
-          _doGet: function (url, parameters, callback) {
-            this._doGetRequest(url, parameters, function (status, responseText) {
-              if ((status == 200) && (!responseText)) {
-                // Request was probably aborted...
-                return;
-              }
-              
-              if (status != 200) {
-                callback(status, null, responseText);
-              } else {
-                callback(status, JSON.parse(responseText), null);
-              }
-            });
-          },
-          
-          _doPost: function (url, object, callback) {
-            this._doJsonPostRequest("POST", url, object, callback);
-          },
-          
-          _doPut: function (url, object, callback) {
-            this._doJsonPostRequest("PUT", url, object, callback);
-          },
-          
-          _doPatch: function (url, object, callback) {
-            this._doJsonPostRequest("PATCH", url, object, callback);
-          },
-          
-          _doDelete: function (url, object, callback) {
-            this._doJsonPostRequest("DELETE", url, object, callback);
-          },
-          
-          _doJsonPostRequest: function (method, url, object, callback) {
-            var data = JSON.stringify(object);
-            
-            this._doPostRequest(method, url, data, 'application/json', function (status, responseText) {
-              if ((status == 200) && (!responseText)) {
-                // Request was probably aborted...
-                return;
-              }
-              
-              try {
-                if (status != 200) {
-                  callback(status, null, responseText);
-                } else {
-                  var responseJson = JSON.parse(responseText);
-                  callback(status, responseJson, null);
-                }
-              } catch (e) {
-                callback(status, null, e);
-              }
-            });
-          },
-      
-          _processParameters: function (parameters) {
-            var result = '';
-            if ((parameters) && (parameters.length > 0)) {
-              for (var i = 0, l = parameters.length; i < l; i++) {
-                if (i > 0) {
-                  result += '&';
-                }
-                result += encodeURIComponent(parameters[i].name) + '=' + encodeURIComponent(parameters[i].value);  
-              }
-            }
-            
-            return result;
-          }, 
-          
-          _doGetRequest: function (url, parameters, callback) {
-            var xhr = this._createXMLHttpRequest();
-            var async = true;
-            
-            xhr.open("get", url + ((parameters.length > 0) ? '?' + this._processParameters(parameters) : ''), async);
-            
-            if (async == true) {
-              xhr.onreadystatechange = function() {
-                if (xhr.readyState==4) {
-                  callback(xhr.status, xhr.responseText);
-                }
-              };
-            }
-            
-            xhr.send(null);
-
-            if (async == false) {
-              callback(xhr.status, xhr.responseText);
-            }
-          },
-              
-          _doPostRequest: function (method, url, data, contentType, callback) {
-            var xhr = this._createXMLHttpRequest();
-            var async = true;
-            if (this._useMethodOverride && (method != 'POST')) {
-              xhr.open("POST", url, async);
-              xhr.setRequestHeader("x-http-method-override", method);
-            } else {
-              xhr.open(method, url, async);
-            }
-            
-            xhr.setRequestHeader("Content-type", contentType);
-            
-            if (!CKEDITOR.env.webkit) {
-              // WebKit refuses to send these headers as unsafe
-              xhr.setRequestHeader("Content-length", data ? data.length : 0);
-              xhr.setRequestHeader("Connection", "close");
-            }
-            
-            if (async == true) {
-              xhr.onreadystatechange = function() {
-                if (xhr.readyState==4) {
-                  callback(xhr.status, xhr.responseText);
-                }
-              };
-            }
-            
-            xhr.send(data);
-            
-            if (async == false) {
-              callback(xhr.status, xhr.responseText);
-            }
-          },
-          
-          _createXMLHttpRequest: function() {
-            if ( !CKEDITOR.env.ie || location.protocol != 'file:' )
-            try { return new XMLHttpRequest(); } catch(e) {}
-            try { return new ActiveXObject( 'Msxml2.XMLHTTP' ); } catch (e) {}
-            try { return new ActiveXObject( 'Microsoft.XMLHTTP' ); } catch (e) {}
-            return null;
           }
         }
       });
