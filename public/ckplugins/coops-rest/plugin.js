@@ -131,13 +131,11 @@
   
   CKEDITOR.plugins.add('coops-rest', {
     requires : [ 'coops' ],
-    init : function(editor) {
-      
+    init : function(editorInstance) {
+
       RestConnector = CKEDITOR.tools.createClass({
-        base : CKEDITOR.coops.Feature,
         $ : function(editor) {
-          this.base(editor);
-          
+          this._editor = editor;
           this._ioHandler = editor.config.coops.restIOHandler||new DefaultIOHandler(editor);
           
           editor.on('CoOPS:Join', this._onCoOpsJoin, this);
@@ -158,7 +156,7 @@
                 // TODO: Proper error handling
                 alert('Could not join:' + error);
               } else {
-                editor.fire("CoOPS:Joined", responseJson);
+                this._editor.fire("CoOPS:Joined", responseJson);
               }
             }, this));
           },
@@ -170,10 +168,10 @@
               this._revisionNumber = joinData.revisionNumber;
               this._sessionId = joinData.sessionId;
 
-              this.getEditor().on("CoOPS:ContentPatch", this._onContentPatch, this);
-              this.getEditor().on("CoOPS:ContentRevert", this._onContentRevert, this);
-              this.getEditor().on("propertiesChange", this._onPropertiesChange, this);
-    
+              this._editor.on("CoOPS:ContentPatch", this._onContentPatch, this);
+              this._editor.on("CoOPS:ContentRevert", this._onContentRevert, this);
+              this._editor.on("propertiesChange", this._onPropertiesChange, this);
+
               this._startUpdatePolling();
 
               event.data.markConnected();
@@ -181,20 +179,20 @@
           },
 
           _onContentPatch : function(event) {
-            if (this.getEditor().config.coops.readOnly === true) {
+            if (this._editor.config.coops.readOnly === true) {
               return;
             } 
             
             var patch = event.data.patch;
-            this.getEditor().getChangeObserver().pause();
+            this._editor.getChangeObserver().pause();
             this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, revisionNumber : this._revisionNumber, sessionId: this._sessionId }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               switch (status) {
                 case 204:
                   // Request was ok
                 break;
                 case 409:
-                  this.getEditor().getChangeObserver().resume();
-                  this.getEditor().fire("CoOPS:PatchRejected");
+                  this._editor.getChangeObserver().resume();
+                  this._editor.fire("CoOPS:PatchRejected");
                 break;
                 default:
                   // TODO: Proper error handling
@@ -206,11 +204,11 @@
           },
           
           _onPropertiesChange: function (event) {
-            if (this.getEditor().config.coops.readOnly === true) {
+            if (this._editor.config.coops.readOnly === true) {
               return;
             } 
 
-            this.getEditor().getChangeObserver().pause();
+            this._editor.getChangeObserver().pause();
             
             var changedProperties = event.data.properties;
             var properties = {};
@@ -225,8 +223,8 @@
                   // Request was ok
                 break;
                 case 409:
-                  this.getEditor().getChangeObserver().resume();
-                  this.getEditor().fire("CoOPS:PatchRejected");
+                  this._editor.getChangeObserver().resume();
+                  this._editor.fire("CoOPS:PatchRejected");
                 break;
                 default:
                   // TODO: Proper error handling
@@ -238,20 +236,20 @@
           },
           
           _onContentRevert: function(event) {
-            this.getEditor().getChangeObserver().pause();
+            this._editor.getChangeObserver().pause();
             
             this._ioHandler.get(this._editor.config.coops.serverUrl, { }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               switch (status) {
                 case 200:
                   // Content reverted
 
-                  this.getEditor().getChangeObserver().reset();
-                  this.getEditor().getChangeObserver().resume();
+                  this._editor.getChangeObserver().reset();
+                  this._editor.getChangeObserver().resume();
                   
                   var content = responseJson.content;
                   this._revisionNumber = responseJson.revisionNumber;
 
-                  this.getEditor().fire("CoOPS:RevertedContentReceived", {
+                  this._editor.fire("CoOPS:RevertedContentReceived", {
                     content: content
                   });
                 break;
@@ -336,8 +334,8 @@
               // Our patch was accepted, yay!
               this._revisionNumber = patch.revisionNumber;
 
-              this.getEditor().getChangeObserver().resume();
-              this.getEditor().fire("CoOPS:PatchAccepted", {
+              this._editor.getChangeObserver().resume();
+              this._editor.fire("CoOPS:PatchAccepted", {
                 revisionNumber: this._revisionNumber
               });
             }
@@ -345,7 +343,7 @@
         }
       });
       
-      editor.on('CoOPS:BeforeJoin', function(event) {
+      editorInstance.on('CoOPS:BeforeJoin', function(event) {
         event.data.addConnector(new RestConnector(event.editor));
       });
 
