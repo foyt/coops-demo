@@ -203,6 +203,13 @@
               var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this._editor.getCoOps().getUnsavedContent());
               this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
               localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
+              
+              if (this._patchesEqual(localPatch, remoteDiff)) {
+                if (window.console) {
+                  console.log("Local change equals remote change, dropping local patch");
+                  localPatch = null;
+                }
+              }
             }
             
             if (localPatch) {
@@ -259,6 +266,29 @@
         } else {
           this._unlockEditor();
         }
+      },
+      
+      _patchesEqual: function (patch1, patch2) {
+        if (patch1.length === patch2.length) {
+          for (var i = 0, l = patch1.length; i < l; i++) {
+            var diffs1 = patch1[i].diffs;
+            var diffs2 = patch2[i].diffs;
+            
+            if (diffs1.length === diffs2.length) {
+              for (var j = 0, dl = diffs1.length; j < dl; j++) {
+                if ((diffs1[j][0] !== diffs2[j][0])||(diffs1[j][1] !== diffs2[j][1])) {
+                  return false;
+                }
+              }
+            } else {
+              return false;
+            }
+          }
+          
+          return true;
+        }
+        
+        return false;
       },
 
       _onPatchReceived: function (event) {
