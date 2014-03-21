@@ -78,8 +78,9 @@
         }
       },
       
-      _applyChanges: function (text, newText) {
+      _applyChanges: function (newText) {
         // TODO: cross-browser support for document creation
+        var text = this._editor.getData();
 
         if (!text) {
           // We do not have old content so we can just directly set new content as editor data
@@ -98,6 +99,7 @@
           
           // And apply delta into a editor
           (new InternalPatch()).apply(this._editor.document.$, delta);
+          this._editor._.data = this._editor.dataProcessor.toHtml(this._editor.document.getBody().$.innerHTML);
 
           // Calculate checksum of patched editor content
           var patchedData = this._editor.getData();
@@ -209,7 +211,7 @@
                 var locallyPatchedText = localPatchResult[0];
                 
                 try {
-                  this._applyChanges(currentContent, locallyPatchedText);
+                  this._applyChanges(locallyPatchedText);
                 } catch (e) {
                   // Change applying of changed crashed, falling back to setData
                   this._editor.setData(locallyPatchedText);
@@ -219,7 +221,7 @@
               }
             } else {
               try {
-                this._applyChanges(currentContent, remotePatchedText);
+                this._applyChanges(remotePatchedText);
               } catch (e) {
                 // Change applying of changed crashed, falling back to setData
                 this._editor.setData(remotePatchedText);
@@ -300,7 +302,7 @@
         }
 
         try {
-          this._applyChanges(savedContent, revertedContent);
+          this._applyChanges(revertedContent);
         } catch (e) {
           // Change applying of changed crashed, falling back to setData
           this._editor.setData(revertedContent);
