@@ -1,0 +1,34 @@
+#editors {
+  position: relative;
+  height: 420px;
+}
+
+#ck1-container, #ck2-container {
+  width: 49%;
+}
+
+#ck1-container {
+  position: absolute;
+  left: 0px;  
+  top: 0px; 
+}
+
+#ck2-container {
+  position: absolute;
+  right: 0px;  
+  top: 0px;
+}
+
+.ck-actions {
+  position: absolute;
+  top: 20px;
+  righT: 0px;
+}
+
+.ck-actions a {
+  margin-left: 10px;
+}
+
+.ck-content {
+  min-height: 100px;
+}
