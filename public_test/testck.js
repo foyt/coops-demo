@@ -42,6 +42,7 @@
         coops: {
           serverUrl: '-',
           mode: 'development',
+          restPolling: 'manual',
           restIOHandler: new MockIOHandler({
             get: $.proxy(this._mockGetRequest, this),
             patch: $.proxy(this._mockPatchRequest, this)
@@ -103,7 +104,7 @@
 
     _onUpdateClick: function (event) {
       event.preventDefault();
-      this._editor.checkUpdates();
+      this._editor.restCheckUpdates();
     },
     
     _destroy : function() {
