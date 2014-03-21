@@ -32,6 +32,10 @@
         return hex_md5(value);
       },
       
+      _removeLineBreaks: function (data) {
+        return (data||'').replace(/\n/g,"");
+      },
+      
       _onSessionStart: function (event) {
         this._diffMatchPatch = new diff_match_patch();
         this._fmes = new Fmes();
@@ -86,7 +90,9 @@
           // We do not have old content so we can just directly set new content as editor data
           this._editor.setData(newText);
         } else {
-          var newTextChecksum = this._createChecksum(newText);
+          if (this._editor.config.coops.mode === 'development') {
+            newText = this._removeLineBreaks(newText);
+          }
           
           // Read original and patched texts into html documents
           var document1 = document.implementation.createHTMLDocument('');
@@ -100,27 +106,14 @@
           // And apply delta into a editor
           (new InternalPatch()).apply(this._editor.document.$, delta);
           this._editor._.data = this._editor.dataProcessor.toHtml(this._editor.document.getBody().$.innerHTML);
-
-          // Calculate checksum of patched editor content
-          var patchedData = this._editor.getData();
-          var patchedDataChecksum = this._createChecksum(patchedData);
           
-          if (newTextChecksum !== patchedDataChecksum) {
-            if (window.console) {
-              console.log(["XmlDiffJs patching did not go well, falling back to setData",
-                           text,
-                           newText,
-                           patchedData,
-                           delta.toDUL()]);
-            }
-            // XmlDiffJs patching did not go well, falling back to setData 
-            this._editor.setData(newText);
-          }
-          
-          var appliedChecksum = this._createChecksum(this._editor.getData());
-          if (newTextChecksum !== appliedChecksum) {
-            if (window.console) {
-              console.log("appliedChecksum does not match newTextChecksum " + appliedChecksum + " != " + newTextChecksum);
+          if (this._editor.config.coops.mode === 'development') {
+            var newTextChecksum = this._createChecksum(newText);
+            var patchedText = this._removeLineBreaks(this._editor.getData());
+            var patchedDataChecksum = this._createChecksum(patchedText);
+            if (newTextChecksum !== patchedDataChecksum) {
+              console.log(["Patching Failed", newText, patchedText]);
+              throw new Error("Patching failed");
             }
           }
         }
