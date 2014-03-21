@@ -18,9 +18,8 @@
       }
         
       CKEDITOR.coops.DmpDifferenceAlgorithm = CKEDITOR.tools.createClass({   
-        base: CKEDITOR.coops.Feature,
         $: function(editor) { 
-          this.base(editor);
+          this._editor = editor;
           
           this._pendingPatches = new Array();
           this._contentCooldownTime = 200;
@@ -41,9 +40,9 @@
             this._diffMatchPatch = new diff_match_patch();
             this._fmes = new Fmes();
             
-            this.getEditor().on("contentChange", this._onContentChange, this);
-            this.getEditor().on("CoOPS:PatchReceived", this._onPatchReceived, this);
-            this.getEditor().on("CoOPS:RevertedContentReceived", this._onRevertedContentReceived, this);
+            this._editor.on("contentChange", this._onContentChange, this);
+            this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this);
+            this._editor.on("CoOPS:RevertedContentReceived", this._onRevertedContentReceived, this);
           },
           
           _emitContentPatch: function (oldContent, newContent) {
@@ -51,7 +50,7 @@
             this._diffMatchPatch.diff_cleanupEfficiency(diff);
             var patch = this._diffMatchPatch.patch_toText(this._diffMatchPatch.patch_make(oldContent, diff));
 
-            this.getEditor().fire("CoOPS:ContentPatch", {
+            this._editor.fire("CoOPS:ContentPatch", {
               patch: patch
             });  
           },
@@ -88,24 +87,24 @@
 
             if (!text) {
               // We do not have old content so we can just directly set new content as editor data
-              this.getEditor().setData(newText);
+              this._editor.setData(newText);
             } else {
               var newTextChecksum = this._createChecksum(newText);
               
               // Read original and patched texts into html documents
               var document1 = document.implementation.createHTMLDocument('');
               var document2 = document.implementation.createHTMLDocument('');
-              document1.documentElement.innerHTML = this.getEditor().dataProcessor.toHtml( text );
-              document2.documentElement.innerHTML = this.getEditor().dataProcessor.toHtml( newText );
+              document1.documentElement.innerHTML = this._editor.dataProcessor.toHtml( text );
+              document2.documentElement.innerHTML = this._editor.dataProcessor.toHtml( newText );
   
               // Create delta of two created documents
               var delta = this._fmes.diff(document1, document2);
               
               // And apply delta into a editor
-              (new InternalPatch()).apply(this.getEditor().document.$, delta);
+              (new InternalPatch()).apply(this._editor.document.$, delta);
   
               // Calculate checksum of patched editor content
-              var patchedData = this.getEditor().getData();
+              var patchedData = this._editor.getData();
               var patchedDataChecksum = this._createChecksum(patchedData);
               
               if (newTextChecksum != patchedDataChecksum) {
@@ -117,10 +116,10 @@
                                delta.toDUL()]);
                 }
                 // XmlDiffJs patching did not go well, falling back to setData 
-                this.getEditor().setData(newText);
+                this._editor.setData(newText);
               } 
               
-              var appliedChecksum = this._createChecksum(this.getEditor().getData());
+              var appliedChecksum = this._createChecksum(this._editor.getData());
               if (newTextChecksum != appliedChecksum) {
                 if (window.console) {
                   console.log("appliedChecksum does not match newTextChecksum " + appliedChecksum + " != " + newTextChecksum);
@@ -165,9 +164,9 @@
           },
           
           _applyPatch: function (patch, patchChecksum, revisionNumber, callback) {
-            this.getEditor().document.$.normalize();
-            var currentContent = this.getEditor().getData();
-            var patchBaseContent = this.getEditor().getCoOps().getSavedContent();
+            this._editor.document.$.normalize();
+            var currentContent = this._editor.getData();
+            var patchBaseContent = this._editor.getCoOps().getSavedContent();
             if (patchBaseContent === null) {
               patchBaseContent = currentContent;
               if (window.console) {
@@ -195,17 +194,17 @@
                   ]);
                 }
 
-                this.getEditor().fire("CoOPS:ContentRevert");
+                this._editor.fire("CoOPS:ContentRevert");
               } else {
                 var localPatch = null;
-                var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
+                var locallyChanged = this._editor.getCoOps().isLocallyChanged();
 
                 if (locallyChanged) {
                   if (window.console) {
                     console.log("Received a patch but we got some local changes");
                   }
 
-                  var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this.getEditor().getCoOps().getUnsavedContent());
+                  var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this._editor.getCoOps().getUnsavedContent());
                   this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
                   localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
                 }
@@ -245,7 +244,7 @@
                 console.log("Reverting document because could not apply the patch");
               }
 
-              this.getEditor().fire("CoOPS:ContentRevert");
+              this._editor.fire("CoOPS:ContentRevert");
             }
           },
           
@@ -286,14 +285,14 @@
             var revertedContent = event.data.content;
 
             var localPatch = null;
-            var locallyChanged = this.getEditor().getCoOps().isLocallyChanged();
+            var locallyChanged = this._editor.getCoOps().isLocallyChanged();
 
             if (locallyChanged) {
               if (window.console) {
                 console.log("Content reverted but we have local changes");
               }
               
-              var patchBaseContent = this.getEditor().getCoOps().getSavedContent();
+              var patchBaseContent = this._editor.getCoOps().getSavedContent();
               if (patchBaseContent === null) {
                 patchBaseContent = currentContent;
                 if (window.console) {
@@ -301,7 +300,7 @@
                 }
               }
               
-              var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this.getEditor().getCoOps().getUnsavedContent());
+              var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this._editor.getCoOps().getUnsavedContent());
               this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
               localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
             }
