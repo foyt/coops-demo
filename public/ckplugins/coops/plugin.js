@@ -1,11 +1,7 @@
 (function() {
-  if (CKEDITOR.coops === undefined) {
-    CKEDITOR.coops = {};
-  }
-  
   var PROTOCOL_VERSION = '1.0.0';
   
-  CKEDITOR.coops.CoOps = CKEDITOR.tools.createClass({  
+  CoOps = CKEDITOR.tools.createClass({  
     $: function(editor) {
       this._editor = editor;
       this._lastSelectionRanges = null;
@@ -45,7 +41,7 @@
     },
     init: function( editor ) {  
       editor.on( 'instanceReady', function(event) {
-        this._coOps = new CKEDITOR.coops.CoOps(this);
+        this._coOps = new CoOps(this);
 
         var algorithms = new Array();
         var connectors = new Array();
