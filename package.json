@@ -23,6 +23,10 @@
     "googlediff": "0.1.0",
     "canvas": "1.1.3"
   },
+  "devDependencies": {
+    "mocha": "*",
+    "selenium-webdriver": "*"
+  },
   "subdomain": "coops-demo",
   "scripts": {
     "start": "node app.js"
