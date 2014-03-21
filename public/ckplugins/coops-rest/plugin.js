@@ -168,8 +168,14 @@
           this._editor.on("CoOPS:ContentRevert", this._onContentRevert, this);
           this._editor.on("propertiesChange", this._onPropertiesChange, this);
 
-          this._startUpdatePolling();
-
+          if (this._editor.config.coops.restPolling !== 'manual') {
+            this._startUpdatePolling();
+          } else {
+            this._editor.restCheckUpdates = CKEDITOR.tools.bind(function () {
+              this._checkUpdates();
+            }, this);
+          }
+          
           event.data.markConnected();
         }
       },
@@ -177,7 +183,7 @@
       _onContentPatch : function(event) {
         if (this._editor.config.coops.readOnly === true) {
           return;
-        } 
+        }
         
         var patch = event.data.patch;
         this._editor.getChangeObserver().pause();
@@ -289,18 +295,24 @@
         this._timer = null;
       },
       
-      _pollUpdates : function(event) {
+      _checkUpdates: function (callback) {
         var url = this._editor.config.coops.serverUrl + '/update';
         this._ioHandler.get(url, [{ name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-          if (status == 200) {
+          if (status === 200) {
             this._applyPatches(responseJson);
-          } else if ((status == 204) || (status == 304)) {
-            // Not modified
-          } else {
+          } else if ((status !== 204) && (status !== 304)) {
             // TODO: Proper error handling
             alert(responseText);
           }
           
+          if (callback) {
+            callback();
+          }
+        }, this));
+      },
+      
+      _pollUpdates : function() {
+        this._checkUpdates(CKEDITOR.tools.bind(function () {
           this._timer = CKEDITOR.tools.setTimeout(this._pollUpdates, 500, this);
         }, this));
       },
