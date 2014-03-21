@@ -1,8 +1,8 @@
 (function() {
-  /* global CKEDITOR, diff_match_patch, Fmes, hex_md5, InternalPatch */
+  /* global CKEDITOR, diff_match_patch, Fmes, hex_md5, InternalPatch, DmpDifferenceAlgorithm:true */
     
   DmpDifferenceAlgorithm = CKEDITOR.tools.createClass({
-    $: function(editor) { 
+    $: function(editor) {
       if ((typeof diff_match_patch) === 'undefined') {
         throw new Error('diff_match_patch is missing');
       }
@@ -17,7 +17,7 @@
       
       this._editor = editor;
       
-      this._pendingPatches = new Array();
+      this._pendingPatches = [];
       this._contentCooldownTime = 200;
       this._contentCoolingDown = false;
 
@@ -48,7 +48,7 @@
 
         this._editor.fire("CoOPS:ContentPatch", {
           patch: patch
-        });  
+        });
       },
     
       _onContentChange: function (event) {
@@ -103,20 +103,20 @@
           var patchedData = this._editor.getData();
           var patchedDataChecksum = this._createChecksum(patchedData);
           
-          if (newTextChecksum != patchedDataChecksum) {
+          if (newTextChecksum !== patchedDataChecksum) {
             if (window.console) {
-              console.log(["XmlDiffJs patching did not go well, falling back to setData", 
-                           text, 
-                           newText, 
-                           patchedData, 
+              console.log(["XmlDiffJs patching did not go well, falling back to setData",
+                           text,
+                           newText,
+                           patchedData,
                            delta.toDUL()]);
             }
             // XmlDiffJs patching did not go well, falling back to setData 
             this._editor.setData(newText);
-          } 
+          }
           
           var appliedChecksum = this._createChecksum(this._editor.getData());
-          if (newTextChecksum != appliedChecksum) {
+          if (newTextChecksum !== appliedChecksum) {
             if (window.console) {
               console.log("appliedChecksum does not match newTextChecksum " + appliedChecksum + " != " + newTextChecksum);
             }
@@ -137,19 +137,19 @@
       
       _unlockEditor: function () {
         var body = this._editor.document.getBody();
-        if (body.data('was-readonly') == 1) {
+        if (body.data('was-readonly')) {
           body.data('was-readonly', false);
         } else {
           body.data('cke-editable', false);
         }
         
         this._editor.getChangeObserver().reset();
-        this._editor.getChangeObserver().resume();  
+        this._editor.getChangeObserver().resume();
       },
       
       _isPatchApplied: function (patchResult) {
         for (var j = 0, jl = patchResult[1].length; j < jl; j++) {
-          if (patchResult[1][j] == false) {
+          if (!patchResult[1][j]) {
             return false;
           }
         }
@@ -175,15 +175,15 @@
           var remotePatchedText = removePatchResult[0];
           var remotePatchedChecksum = this._createChecksum(remotePatchedText);
           
-          if (patchChecksum != remotePatchedChecksum) {
+          if (patchChecksum !== remotePatchedChecksum) {
             if (window.console) {
               console.log([
-                "Reverting document because checksum did not match", 
-                patchBaseContent, 
-                patch, 
+                "Reverting document because checksum did not match",
+                patchBaseContent,
+                patch,
                 revisionNumber,
                 patchChecksum,
-                remotePatchedChecksum, 
+                remotePatchedChecksum,
                 remotePatchedText
               ]);
             }
@@ -280,23 +280,16 @@
 
         var localPatch = null;
         var locallyChanged = this._editor.getCoOps().isLocallyChanged();
+        var savedContent = this._editor.getCoOps().getSavedContent();
 
         if (locallyChanged) {
           if (window.console) {
             console.log("Content reverted but we have local changes");
           }
           
-          var patchBaseContent = this._editor.getCoOps().getSavedContent();
-          if (patchBaseContent === null) {
-            patchBaseContent = currentContent;
-            if (window.console) {
-              console.log("Saved content missing. Patching against current content");
-            }
-          }
-          
-          var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this._editor.getCoOps().getUnsavedContent());
+          var localDiff = this._diffMatchPatch.diff_main(savedContent, this._editor.getCoOps().getUnsavedContent());
           this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-          localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
+          localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
         }
         
         if (localPatch) {
@@ -307,7 +300,7 @@
         }
 
         try {
-          this._applyChanges(currentContent, revertedContent);
+          this._applyChanges(savedContent, revertedContent);
         } catch (e) {
           // Change applying of changed crashed, falling back to setData
           this._editor.setData(revertedContent);
@@ -324,7 +317,7 @@
   
   CKEDITOR.plugins.add( 'coops-dmp', {
     requires: ['coops'],
-    init: function( editor ) { 
+    init: function( editor ) {
       editor.on('CoOPS:BeforeJoin', function(event) {
         event.data.addAlgorithm(new DmpDifferenceAlgorithm(event.editor));
       });
