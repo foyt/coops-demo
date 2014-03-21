@@ -5,20 +5,6 @@
   
   var PROTOCOL_VERSION = '1.0.0';
   
-  CKEDITOR.coops.Feature = CKEDITOR.tools.createClass({   
-    $: function(editor) {
-      this._editor = editor;
-    },
-    proto : {
-      getEditor: function () {
-        return this._editor;
-      },
-      getName: function () {
-        return null;
-      }
-    }
-  });
-  
   CKEDITOR.coops.CoOps = CKEDITOR.tools.createClass({  
     $: function(editor) {
       this._editor = editor;
