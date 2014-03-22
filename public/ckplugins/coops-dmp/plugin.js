@@ -208,6 +208,11 @@
                   // Change applying of changed crashed, falling back to setData
                   this._editor.setData(locallyPatchedText);
                 }
+                
+                this._editor.fire("CoOPS:PatchMerged", {
+                  patched : remotePatchedText,
+                  merged: locallyPatchedText
+                });
 
                 callback();
               }
@@ -218,13 +223,13 @@
                 // Change applying of changed crashed, falling back to setData
                 this._editor.setData(remotePatchedText);
               }
+
+              this._editor.fire("CoOPS:PatchApplied", {
+                content : remotePatchedText
+              });
               
               callback();
             }
-
-            this._editor.fire("CoOPS:PatchApplied", {
-              content : remotePatchedText
-            });
           }
           
         } else {
@@ -291,37 +296,44 @@
       
       _onRevertedContentReceived: function (event) {
         var revertedContent = event.data.content;
-
-        var localPatch = null;
-        var locallyChanged = this._editor.getCoOps().isLocallyChanged();
-        var savedContent = this._editor.getCoOps().getSavedContent();
-
-        if (locallyChanged) {
-          this._editor.getCoOps().log("Content reverted but we have local changes");
-          var localDiff = this._diffMatchPatch.diff_main(savedContent, this._editor.getCoOps().getUnsavedContent());
-          this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-          localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
-        }
         
-        if (localPatch) {
-          var localPatchResult = this._diffMatchPatch.patch_apply(localPatch, revertedContent);
-          if (this._isPatchApplied(localPatchResult)) {
-            revertedContent = localPatchResult[0];
-          }
-        }
-
-        try {
-          this._applyChanges(revertedContent);
-        } catch (e) {
-          // Change applying of changed crashed, falling back to setData
-          this._editor.setData(revertedContent);
-        }
+        this._applyChanges(revertedContent);
         
         this._editor.fire("CoOPS:ContentReverted", {
           content : revertedContent
         });
         
-        this._unlockEditor();
+//
+//        var localPatch = null;
+//        var locallyChanged = this._editor.getCoOps().isLocallyChanged();
+//        var savedContent = this._editor.getCoOps().getSavedContent();
+//
+//        if (locallyChanged) {
+//          this._editor.getCoOps().log("Content reverted but we have local changes");
+//          var localDiff = this._diffMatchPatch.diff_main(savedContent, this._editor.getCoOps().getUnsavedContent());
+//          this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
+//          localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
+//        }
+//        
+//        if (localPatch) {
+//          var localPatchResult = this._diffMatchPatch.patch_apply(localPatch, revertedContent);
+//          if (this._isPatchApplied(localPatchResult)) {
+//            revertedContent = localPatchResult[0];
+//          }
+//        }
+//
+//        try {
+//          this._applyChanges(revertedContent);
+//        } catch (e) {
+//          // Change applying of changed crashed, falling back to setData
+//          this._editor.setData(revertedContent);
+//        }
+//        
+//        this._editor.fire("CoOPS:ContentReverted", {
+//          content : revertedContent
+//        });
+//        
+//        this._unlockEditor();
       }
     }
   });
