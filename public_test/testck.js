@@ -29,8 +29,6 @@
       
     },
     _create : function() {
-      
-      
       this._editor = CKEDITOR.appendTo($('<div>').appendTo(this.element).get(0), {
         toolbar: [
           { name: 'insert', items : [ 'Image','Table','HorizontalRule','SpecialChar'] },
@@ -46,7 +44,10 @@
           restIOHandler: new MockIOHandler({
             get: $.proxy(this._mockGetRequest, this),
             patch: $.proxy(this._mockPatchRequest, this)
-          })
+          }),
+          log: $.proxy(function (message) {
+            $('#log').append($('<div>').addClass('log-entry').html(new Date() + ' - ' + this._editor.name + ': ' + message));
+          }, this)
         }
       });
       
