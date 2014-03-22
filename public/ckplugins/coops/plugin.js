@@ -26,6 +26,13 @@
       },
       setSavedContent: function (savedContent) {
         this._unsavedContent = this._savedContent = savedContent;
+      },
+      log: function (message) {
+        if (this._editor.config.coops.log) {
+          this._editor.config.coops.log(message);
+        } else if (window.console) {
+          console.log(message);
+        }
       }
     }
   });

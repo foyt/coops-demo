@@ -112,7 +112,7 @@
             var patchedText = this._removeLineBreaks(this._editor.getData());
             var patchedDataChecksum = this._createChecksum(patchedText);
             if (newTextChecksum !== patchedDataChecksum) {
-              console.log(["Patching Failed", newText, patchedText]);
+              this._editor.getCoOps().log(["Patching Failed", newText, patchedText]);
               throw new Error("Patching failed");
             }
           }
@@ -158,9 +158,7 @@
         var patchBaseContent = this._editor.getCoOps().getSavedContent();
         if (patchBaseContent === null) {
           patchBaseContent = currentContent;
-          if (window.console) {
-            console.log("Saved content missing. Patching against current content");
-          }
+          this._editor.getCoOps().log("Saved content missing. Patching against current content");
         }
         
         var remoteDiff = this._diffMatchPatch.patch_fromText(patch);
@@ -171,17 +169,15 @@
           var remotePatchedChecksum = this._createChecksum(remotePatchedText);
           
           if (patchChecksum !== remotePatchedChecksum) {
-            if (window.console) {
-              console.log([
-                "Reverting document because checksum did not match",
-                patchBaseContent,
-                patch,
-                revisionNumber,
-                patchChecksum,
-                remotePatchedChecksum,
-                remotePatchedText
-              ]);
-            }
+            this._editor.getCoOps().log([
+              "Reverting document because checksum did not match",
+              patchBaseContent,
+              patch,
+              revisionNumber,
+              patchChecksum,
+              remotePatchedChecksum,
+              remotePatchedText
+            ]);
 
             this._editor.fire("CoOPS:ContentRevert");
           } else {
@@ -189,19 +185,15 @@
             var locallyChanged = this._editor.getCoOps().isLocallyChanged();
 
             if (locallyChanged) {
-              if (window.console) {
-                console.log("Received a patch but we got some local changes");
-              }
-
+              this._editor.getCoOps().log("Received a patch but we got some local changes");
+              
               var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this._editor.getCoOps().getUnsavedContent());
               this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
               localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
               
               if (this._patchesEqual(localPatch, remoteDiff)) {
-                if (window.console) {
-                  console.log("Local change equals remote change, dropping local patch");
-                  localPatch = null;
-                }
+                this._editor.getCoOps().log("Local change equals remote change, dropping local patch");
+                localPatch = null;
               }
             }
             
@@ -236,10 +228,7 @@
           }
           
         } else {
-          if (window.console) {
-            console.log("Reverting document because could not apply the patch");
-          }
-
+          this._editor.getCoOps().log("Reverting document because could not apply the patch");
           this._editor.fire("CoOPS:ContentRevert");
         }
       },
@@ -308,10 +297,7 @@
         var savedContent = this._editor.getCoOps().getSavedContent();
 
         if (locallyChanged) {
-          if (window.console) {
-            console.log("Content reverted but we have local changes");
-          }
-          
+          this._editor.getCoOps().log("Content reverted but we have local changes");
           var localDiff = this._diffMatchPatch.diff_main(savedContent, this._editor.getCoOps().getUnsavedContent());
           this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
           localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
