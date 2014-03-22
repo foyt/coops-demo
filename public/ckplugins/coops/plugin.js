@@ -1,37 +1,106 @@
 (function() {
   var PROTOCOL_VERSION = '1.0.0';
   
-  CoOps = CKEDITOR.tools.createClass({  
+  CoOps = CKEDITOR.tools.createClass({
     $: function(editor) {
       this._editor = editor;
       this._lastSelectionRanges = null;
       this._unsavedContent = null;
       this._savedContent = null;
+      
+      this._editor.on('contentChange', this._onContentChange, this);
+      this._editor.on('CoOPS:SessionStart', this._onSessionStart, this);
+      this._editor.on('CoOPS:PatchAccepted', this._onPatchAccepted, this);
+      this._editor.on('CoOPS:ContentReverted', this._onContentReverted, this);
+      this._editor.on('CoOPS:PatchApplied', this._onPatchApplied, this);
+      this._editor.on("CoOPS:Joined", this._onJoined, this);
     },
     proto : {
       getEditor: function () {
         return this._editor;
       },
+      
       isLocallyChanged: function () {
         return (this._unsavedContent != null) && (this._savedContent != null) && (this._unsavedContent != this._savedContent);
       },
+      
       getUnsavedContent: function () {
         return this._unsavedContent;
       },
+      
       getSavedContent: function () {
         return this._savedContent;
       },
+      
       setUnsavedContent: function (unsavedContent) {
         this._unsavedContent = unsavedContent;
       },
+      
       setSavedContent: function (savedContent) {
         this._unsavedContent = this._savedContent = savedContent;
       },
+      
       log: function (message) {
         if (this._editor.config.coops.log) {
           this._editor.config.coops.log(message);
         } else if (window.console) {
           console.log(message);
+        }
+      },
+      
+      _onContentChange: function (event) {
+        this.setUnsavedContent(event.data.currentContent);
+        this._editor.fire("CoOPS:ContentDirty");
+      },
+      
+      _onSessionStart: function (event) {
+        this.setSavedContent(this._editor.getData());
+      },
+      
+      _onPatchAccepted: function (event) {
+        this.setSavedContent(this._editor.getData());
+      },
+      
+      _onContentReverted: function (event) {
+        this.setSavedContent(event.data.content);
+        this.setUnsavedContent(event.data.content);
+      },
+      
+      _onPatchApplied: function (event) {
+        this.setSavedContent(event.data.content);
+      },
+      
+      _onJoined: function (event) {
+        var content = event.data.content;
+        
+        this._editor.getChangeObserver().pause();
+        this._editor.getSelection().removeAllRanges();
+        
+        var connected = false;
+        var beforeStartEvent = {
+          joinData: event.data,
+          isConnected: function () {
+            return connected;
+          },
+          markConnected: function () {
+            connected = true;
+          }
+        };
+
+        this._editor.fire("CoOPS:BeforeSessionStart", beforeStartEvent);
+
+        if (beforeStartEvent.isConnected()) {
+          this._editor.fire("CoOPS:SessionStart");
+          this._editor.setData(content, function () {
+            if (this.config.coops.readOnly !== true) {
+              this.getChangeObserver().reset(content);
+              this.getChangeObserver().resume();
+              this.setReadOnly(false);
+            }
+          });
+        } else {
+          // TODO: Proper error handling
+          alert('Could not connect...');
         }
       }
     }
@@ -74,61 +143,6 @@
           protocolVersion: PROTOCOL_VERSION,
           algorithms: algorithmNames
         });
-      });
-        
-      editor.on('contentChange', function(event) {
-        this._coOps.setUnsavedContent(event.data.currentContent);
-        editor.fire("CoOPS:ContentDirty");
-      });
-    
-      editor.on('CoOPS:SessionStart', function(event) {
-        this._coOps.setSavedContent(this.getData());
-      });
-    
-      editor.on('CoOPS:PatchAccepted', function(event) {
-        this._coOps.setSavedContent(this.getData());
-      });
-    
-      editor.on('CoOPS:ContentReverted', function(event) {
-        this._coOps.setSavedContent(event.data.content);
-      });
-    
-      editor.on('CoOPS:PatchApplied', function(event) {
-        this._coOps.setSavedContent(event.data.content);
-      });
-      
-      editor.on("CoOPS:Joined", function (event) {
-        var content = event.data.content;
-        
-        this.getChangeObserver().pause();
-        this.getSelection().removeAllRanges();
-        
-        var connected = false;
-        var beforeStartEvent = {
-          joinData: event.data,
-          isConnected: function () {
-            return connected;
-          },
-          markConnected: function () {
-            connected = true;
-          }
-        };
-
-        this.fire("CoOPS:BeforeSessionStart", beforeStartEvent);
-
-        if (beforeStartEvent.isConnected()) {
-          this.fire("CoOPS:SessionStart");
-          this.setData(content, function () {
-            if (this.config.coops.readOnly !== true) {
-              this.getChangeObserver().reset(content);
-              this.getChangeObserver().resume();
-              this.setReadOnly(false);  
-            }
-          });
-        } else {
-          // TODO: Proper error handling
-          alert('Could not connect...');
-        }
       });
   
     }
