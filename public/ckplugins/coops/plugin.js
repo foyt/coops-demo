@@ -37,7 +37,7 @@
       },
       
       setSavedContent: function (savedContent) {
-        this._unsavedContent = this._savedContent = savedContent;
+        this._savedContent = savedContent;
       },
       
       log: function (message) {
@@ -54,11 +54,15 @@
       },
       
       _onSessionStart: function (event) {
-        this.setSavedContent(this._editor.getData());
+        var content = this._editor.getData();
+        this.setSavedContent(content);
+        this.setUnsavedContent(content);
       },
       
       _onPatchAccepted: function (event) {
-        this.setSavedContent(this._editor.getData());
+        var content = this._editor.getData();
+        this.setSavedContent(content);
+        this.setUnsavedContent(content);
       },
       
       _onContentReverted: function (event) {
@@ -68,6 +72,7 @@
       
       _onPatchApplied: function (event) {
         this.setSavedContent(event.data.content);
+        this.setUnsavedContent(event.data.content);
       },
       
       _onJoined: function (event) {
