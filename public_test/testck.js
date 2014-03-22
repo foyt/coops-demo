@@ -67,6 +67,8 @@
         this._mockJoin(paramMap, callback);
       } else if (url === '-/update') {
         this._mockUpdate(paramMap, callback);
+      } else if (url === '-') {
+        this._mockGet(paramMap, callback);
       } else {
         console.log(["mock-get", url, parameters, callback]);
       }
@@ -101,6 +103,16 @@
       $('#server').TestServer('updates', paramMap.revisionNumber, $.proxy(function (status, patches) {
         callback(status, patches, null);
       }, this));
+    },
+    
+    _mockGet: function (paramMap, callback) {
+      callback(200, {
+        "revisionNumber": $('#server').TestServer('revision'),
+        "content": $('#server').TestServer('content'),
+        "contentType": "text/html;editor=CKEditor",
+        "properties": $('#server').TestServer('properties'),
+        "extensions": $('#server').TestServer('extensions')
+      }, null);
     },
 
     _onUpdateClick: function (event) {
@@ -150,6 +162,7 @@
           this._dmpPatch(patch, this.content(), this.properties(), properties, $.proxy(function (err, patched) {
             $('.ck-rev').val(patchRevision);
             $('.ck-content').val(patched);
+            console.log("content -> " + patched);
             
             this._revisions.push({
               revisionNumber: patchRevision,
