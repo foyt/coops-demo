@@ -181,19 +181,13 @@
       },
 
       _onContentPatch : function(event) {
-        if (this._editor.config.coops.readOnly === true) {
-          return;
-        }
-        
         var patch = event.data.patch;
-        this._editor.getChangeObserver().pause();
         this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, revisionNumber : this._revisionNumber, sessionId: this._sessionId }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
           switch (status) {
             case 204:
               // Request was ok
             break;
             case 409:
-              this._editor.getChangeObserver().resume();
               this._editor.fire("CoOPS:PatchRejected");
             break;
             default:
@@ -206,12 +200,6 @@
       },
       
       _onPropertiesChange: function (event) {
-        if (this._editor.config.coops.readOnly === true) {
-          return;
-        } 
-
-        this._editor.getChangeObserver().pause();
-        
         var changedProperties = event.data.properties;
         var properties = {};
         
@@ -225,7 +213,6 @@
               // Request was ok
             break;
             case 409:
-              this._editor.getChangeObserver().resume();
               this._editor.fire("CoOPS:PatchRejected");
             break;
             default:
@@ -238,16 +225,11 @@
       },
       
       _onContentRevert: function(event) {
-        this._editor.getChangeObserver().pause();
-        
         this._ioHandler.get(this._editor.config.coops.serverUrl, { }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
           switch (status) {
             case 200:
               // Content reverted
 
-              this._editor.getChangeObserver().reset();
-              this._editor.getChangeObserver().resume();
-              
               var content = responseJson.content;
               this._revisionNumber = responseJson.revisionNumber;
 
@@ -342,7 +324,6 @@
           // Our patch was accepted, yay!
           this._revisionNumber = patch.revisionNumber;
 
-          this._editor.getChangeObserver().resume();
           this._editor.fire("CoOPS:PatchAccepted", {
             revisionNumber: this._revisionNumber
           });

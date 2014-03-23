@@ -10,7 +10,12 @@
       
       this._editor.on('contentChange', this._onContentChange, this);
       this._editor.on('CoOPS:SessionStart', this._onSessionStart, this);
+      this._editor.on('CoOPS:ContentPatch', this._onContentPatch, this);
+      this._editor.on('CoOPS:ContentRevert', this._onContentRevert, this);
+      this._editor.on('propertiesChange', this._onPropertiesChange, this);
       this._editor.on('CoOPS:PatchAccepted', this._onPatchAccepted, this);
+      this._editor.on('CoOPS:PatchMerged', this._onPatchMerged, this);
+      this._editor.on('CoOPS:PatchRejected', this._onPatchRejected, this);
       this._editor.on('CoOPS:ContentReverted', this._onContentReverted, this);
       this._editor.on('CoOPS:PatchApplied', this._onPatchApplied, this);
       this._editor.on("CoOPS:Joined", this._onJoined, this);
@@ -50,7 +55,12 @@
       
       _onContentChange: function (event) {
         this.setUnsavedContent(event.data.currentContent);
-        this._editor.fire("CoOPS:ContentDirty");
+        if (this.isLocallyChanged()) {
+          this._editor.fire("CoOPS:ContentDirty", {
+            unsavedContent: this.getUnsavedContent(),
+            savedContent: this.getSavedContent()
+          });
+        }
       },
       
       _onSessionStart: function (event) {
@@ -59,15 +69,39 @@
         this.setUnsavedContent(content);
       },
       
+      _onContentPatch: function (event) {
+        this._editor.getChangeObserver().pause();
+      },
+      
+      _onContentRevert: function (event) {
+        this._editor.getChangeObserver().pause();
+      },
+      
+      _onPropertiesChange: function (event) {
+        this._editor.getChangeObserver().pause();
+      },
+      
       _onPatchAccepted: function (event) {
-        var content = this._editor.getData();
-        this.setSavedContent(content);
-        this.setUnsavedContent(content);
+        this.setSavedContent(this.getUnsavedContent());
+        this._editor.getChangeObserver().resume();
+      },
+      
+      _onPatchMerged: function (event) {
+        this.setUnsavedContent(event.data.merged);
+        this.setSavedContent(event.data.patched);
+        this._editor.getChangeObserver().reset(event.data.merged);
+        this._editor.getChangeObserver().resume();
+      },
+      
+      _onPatchRejected: function (event) {
+        this._editor.getChangeObserver().resume();
       },
       
       _onContentReverted: function (event) {
         this.setSavedContent(event.data.content);
         this.setUnsavedContent(event.data.content);
+        this._editor.getChangeObserver().reset(event.data.content);
+        this._editor.getChangeObserver().resume();
       },
       
       _onPatchApplied: function (event) {

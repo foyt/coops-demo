@@ -40,7 +40,7 @@
         this._diffMatchPatch = new diff_match_patch();
         this._fmes = new Fmes();
         
-        this._editor.on("contentChange", this._onContentChange, this);
+        this._editor.on("CoOPS:ContentDirty", this._onContentDirty, this);
         this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this);
         this._editor.on("CoOPS:RevertedContentReceived", this._onRevertedContentReceived, this);
       },
@@ -55,14 +55,10 @@
         });
       },
     
-      _onContentChange: function (event) {
+      _onContentDirty: function (event) {
         if (!this._contentCoolingDown) {
           this._contentCoolingDown = true;
-          
-          var oldContent = event.data.oldContent;
-          var currentContent = event.data.currentContent;
-          
-          this._emitContentPatch(oldContent, currentContent);
+          this._emitContentPatch(event.data.savedContent, event.data.unsavedContent);
 
           CKEDITOR.tools.setTimeout(function() {
             if (this._pendingOldContent && this._pendingNewContent) {
@@ -75,10 +71,10 @@
           }, this._contentCooldownTime, this);
         } else {
           if (!this._pendingOldContent) {
-            this._pendingOldContent = event.data.oldContent;
+            this._pendingOldContent = event.data.savedContent;
           }
           
-          this._pendingNewContent = event.data.currentContent;
+          this._pendingNewContent = event.data.unsavedContent;
         }
       },
       
@@ -302,38 +298,6 @@
         this._editor.fire("CoOPS:ContentReverted", {
           content : revertedContent
         });
-        
-//
-//        var localPatch = null;
-//        var locallyChanged = this._editor.getCoOps().isLocallyChanged();
-//        var savedContent = this._editor.getCoOps().getSavedContent();
-//
-//        if (locallyChanged) {
-//          this._editor.getCoOps().log("Content reverted but we have local changes");
-//          var localDiff = this._diffMatchPatch.diff_main(savedContent, this._editor.getCoOps().getUnsavedContent());
-//          this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-//          localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
-//        }
-//        
-//        if (localPatch) {
-//          var localPatchResult = this._diffMatchPatch.patch_apply(localPatch, revertedContent);
-//          if (this._isPatchApplied(localPatchResult)) {
-//            revertedContent = localPatchResult[0];
-//          }
-//        }
-//
-//        try {
-//          this._applyChanges(revertedContent);
-//        } catch (e) {
-//          // Change applying of changed crashed, falling back to setData
-//          this._editor.setData(revertedContent);
-//        }
-//        
-//        this._editor.fire("CoOPS:ContentReverted", {
-//          content : revertedContent
-//        });
-//        
-//        this._unlockEditor();
       }
     }
   });
