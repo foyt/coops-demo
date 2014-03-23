@@ -46,7 +46,18 @@
             patch: $.proxy(this._mockPatchRequest, this)
           }),
           log: $.proxy(function (message) {
-            $('#log').append($('<div>').addClass('log-entry').html(new Date() + ' - ' + this._editor.name + ': ' + message));
+            var text = null;
+            if ($.isArray(message)) {
+              text = message.join(',');
+            } else {
+              text = message;
+            }
+            
+            $('#log').append(
+              $('<div>')
+                .addClass('log-entry')
+                .addClass('log-entry-' + this._editor.name)
+                .text(new Date() + ' - ' + this._editor.name + ': ' + text));
           }, this)
         }
       });
@@ -76,7 +87,6 @@
     
     _mockPatchRequest: function (url, parameters, callback) {
       $('#server').TestServer('patch', parameters.sessionId, parameters.revisionNumber, parameters.patch, parameters.properties, parameters.extensions, $.proxy(function (status) {
-        console.log(['patch', url, parameters, status]);
         callback(status);
       }, this));
     },
@@ -162,7 +172,6 @@
           this._dmpPatch(patch, this.content(), this.properties(), properties, $.proxy(function (err, patched) {
             $('.ck-rev').val(patchRevision);
             $('.ck-content').val(patched);
-            console.log("content -> " + patched);
             
             this._revisions.push({
               revisionNumber: patchRevision,
