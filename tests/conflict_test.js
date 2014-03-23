@@ -64,18 +64,24 @@
       driver.switchTo().defaultContent();
       driver.findElement(webdriver.By.css('#ck2 .ck-action-update')).click();
 
-      // Both editors and server should contain text <p>abc</p> 
+      // ck1 should contain <p>abc</p>
       utils.getCKData(driver, ck1Frame, function (data) {
-        assert.equal(data, '<p>abc</p>', 'ck1');
+        assert.equal(utils.removeLineBreaks(data), '<p>abc</p>', 'ck1');
       });
 
+      // ck2 and server <p>abd</p><p>abc</p>
       utils.getCKData(driver, ck2Frame, function (data) {
-        assert.equal(data, '<p>abc</p>', 'ck2');
+        assert.equal(utils.removeLineBreaks(data), '<p>abd</p><p>abc</p>', 'ck2');
       });
       
       driver.findElement(webdriver.By.css('.ck-content')).getAttribute('value').then(function(value) {
-        assert.equal(value, '<p>abc</p>\n', 'server');
+        assert.equal(utils.removeLineBreaks(value), '<p>abd</p><p>abc</p>', 'server');
       });
+      
+      // update ck1 
+      driver.findElement(webdriver.By.css('#ck1 .ck-action-update')).click();
+      
+      // Ck1 should also contain <p>abd</p><p>abc</p>
     });
   
   });

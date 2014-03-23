@@ -36,10 +36,15 @@
       });
     });
   }
+  
+  function removeLineBreaks (data) {
+    return (data||'').replace(/\n/g,"");
+  }
 
   module.exports = {
     waitFor: waitFor,
-    getCKData: getCKData
+    getCKData: getCKData,
+    removeLineBreaks: removeLineBreaks
   };
   
 }).call(this);

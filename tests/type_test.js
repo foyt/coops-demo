@@ -65,15 +65,15 @@
       
       // Both editors and server should contain text <p>a</p>
       utils.getCKData(driver, ck1Frame, function (data) {
-        assert.equal(data, '<p>abc</p>');
+        assert.equal(utils.removeLineBreaks(data), '<p>abc</p>');
       });
 
       utils.getCKData(driver, ck2Frame, function (data) {
-        assert.equal(data, '<p>abc</p>');
+        assert.equal(utils.removeLineBreaks(data), '<p>abc</p>');
       });
       
       driver.findElement(webdriver.By.css('.ck-content')).getAttribute('value').then(function(value) {
-        assert.equal(value, '<p>abc</p>\n');
+        assert.equal(utils.removeLineBreaks(value), '<p>abc</p>');
       });
     });
   
