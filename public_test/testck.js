@@ -146,6 +146,14 @@
       this.element.append($('<input>').addClass('ck-rev').attr({"autocomplete": "off"}).val(this.options.revision));
       this.element.append($('<div>').append($('<label>').text('Content')));
       this.element.append($('<textarea>').addClass('ck-content').attr({"autocomplete": "off"}).css({ width: '100%' }).val(this.options.content));
+      
+      this.element.append($('<div>')
+        .addClass('patch-server-container')
+        .append($('<h5>').text('Add a Patch'))
+        .append($('<label>').text('Content'))
+        .append($('<input>').addClass('patch-server-content'))
+        .append($('<a>').attr('href', '#').addClass('patch-server-link').text('Patch').click($.proxy(this._onPatchServerClick, this)))
+      );
     },
     
     content: function () {
@@ -172,6 +180,7 @@
           this._dmpPatch(patch, this.content(), this.properties(), properties, $.proxy(function (err, patched) {
             $('.ck-rev').val(patchRevision);
             $('.ck-content').val(patched);
+            $('.ck-content').attr('data-r-' + patchRevision, patch.replace(/\n/g,'\\n'));
             
             this._revisions.push({
               revisionNumber: patchRevision,
@@ -236,6 +245,16 @@
       } else {
         callback("Could not apply patch", null, null);
       }
+    },
+    
+    _onPatchServerClick: function (event) {
+      event.preventDefault();
+      
+      var patch = this.element.find('.patch-server-content').val().replace(/\\n/g,'\n');
+      var sessionId = 'server-session';
+      this.patch(sessionId, this.revision(), patch, {}, {}, function () {
+        
+      });
     },
     
     _destroy : function() {

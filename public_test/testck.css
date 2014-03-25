@@ -38,6 +38,13 @@
   padding: 8px;
 }
 
+
+.patch-server-content {
+  width: 400px;
+  margin-left: 10px;
+  margin-right: 10px;
+}
+
 .log-entry {
   font-family: courier;
   font-size: 12px;
