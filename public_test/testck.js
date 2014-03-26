@@ -8,6 +8,7 @@
   CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
   CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
   CKEDITOR.plugins.addExternal('coops-rest', '/ckplugins/coops-rest/');
+  CKEDITOR.plugins.addExternal('coops-cursors', '/ckplugins/coops-cursors/');
   
   MockIOHandler = CKEDITOR.tools.createClass({
     $: function(options) {
@@ -35,7 +36,7 @@
           { name: 'styles', items : [ 'Styles','Format' ] },
           { name: 'basicstyles', items : [ 'Bold','Italic','Strike','-','RemoveFormat' ] }
         ],
-        extraPlugins: 'coops,coops-dmp,coops-rest',
+        extraPlugins: 'coops,coops-dmp,coops-rest,coops-cursors',
         readOnly: true,
         coops: {
           serverUrl: '-',
