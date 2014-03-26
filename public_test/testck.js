@@ -96,8 +96,8 @@
       var response = {
         sessionId: this.element.attr('id') + '-' + hex_md5(String(Math.random() * 10000)),
         algorithm: "dmp",
-        revisionNumber: 0,
-        content: '',
+        revisionNumber: $('#server').TestServer('revision'),
+        content: $('#server').TestServer('content'),
         contentType: "text/html;editor=CKEditor",
         properties: {},
         extensions: {}
@@ -262,7 +262,10 @@
   });
   
   $(document).ready(function (event) {
-    $('#server').TestServer();
+    $('#server').TestServer({
+      revision: $.url().param('rev'),
+      content: $.url().param('content')
+    });
     $('#ck1').TestCK();
     $('#ck2').TestCK();
   });
