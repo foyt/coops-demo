@@ -1,5 +1,7 @@
 (function() {
   
+  /* global CKEDITOR */
+  
   $(document).ready(function() {
     var location = window.document.location;
     var path = location.pathname.split('/');
