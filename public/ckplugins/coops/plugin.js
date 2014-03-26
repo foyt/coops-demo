@@ -129,12 +129,12 @@
         this._editor.fire("CoOPS:BeforeSessionStart", beforeStartEvent);
 
         if (beforeStartEvent.isConnected()) {
-          this._editor.fire("CoOPS:SessionStart");
           this._editor.setData(content, function () {
             if (this.config.coops.readOnly !== true) {
               this.getChangeObserver().reset(content);
               this.getChangeObserver().resume();
               this.setReadOnly(false);
+              this.fire("CoOPS:SessionStart");
             }
           });
         } else {
