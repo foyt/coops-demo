@@ -41,7 +41,7 @@
         coops: {
           serverUrl: '-',
           mode: 'development',
-          restPolling: 'manual',
+          restPolling: $.url().param('poll') || 'manual',
           restIOHandler: new MockIOHandler({
             get: $.proxy(this._mockGetRequest, this),
             patch: $.proxy(this._mockPatchRequest, this)
@@ -179,20 +179,24 @@
         
         if (patch) {
           this._dmpPatch(patch, this.content(), this.properties(), properties, $.proxy(function (err, patched) {
-            $('.ck-rev').val(patchRevision);
-            $('.ck-content').val(patched);
-            $('.ck-content').attr('data-r-' + patchRevision, patch.replace(/\n/g,'\\n'));
-            
-            this._revisions.push({
-              revisionNumber: patchRevision,
-              patch: patch,
-              checksum: hex_md5(patched),
-              sessionId: sessionId,
-              properties: properties,
-              extensions: extensions
-            });
-            
-            callback(err ? 500 : 204);
+            if (err) {
+              callback(500, err);
+            } else {
+              $('.ck-rev').val(patchRevision);
+              $('.ck-content').val(patched);
+              $('.ck-content').attr('data-r-' + patchRevision, patch.replace(/\n/g,'\\n'));
+              
+              this._revisions.push({
+                revisionNumber: patchRevision,
+                patch: patch,
+                checksum: hex_md5(patched),
+                sessionId: sessionId,
+                properties: properties,
+                extensions: extensions
+              });
+              
+              callback(204);
+            }
           }, this));
         } else {
           this._revisions.push({
@@ -205,6 +209,7 @@
           });
           
           $('.ck-rev').val(patchRevision);
+          console.log("Patch - 204: " + patchRevision);
           callback(204);
         }
       } else {
