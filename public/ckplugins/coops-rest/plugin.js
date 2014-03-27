@@ -183,21 +183,7 @@
 
       _onContentPatch : function(event) {
         var patch = event.data.patch;
-        this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, revisionNumber : this._revisionNumber, sessionId: this._sessionId }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-          switch (status) {
-            case 204:
-              // Request was ok
-            break;
-            case 409:
-              this._editor.fire("CoOPS:PatchRejected");
-            break;
-            default:
-              // TODO: Proper error handling
-              alert('Unknown Error');
-            break;
-          }
-          
-        }, this));
+        this._sendPatch(patch, null, null);
       },
       
       _onPropertiesChange: function (event) {
@@ -206,29 +192,17 @@
         
         for (var i = 0, l = changedProperties.length; i < l; i++) {
           properties[changedProperties[i].property] = changedProperties[i].currentValue;
-        };
+        }
         
-        this._ioHandler.patch(this._editor.config.coops.serverUrl, { properties: properties, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-          switch (status) {
-            case 204:
-              // Request was ok
-            break;
-            case 409:
-              this._editor.fire("CoOPS:PatchRejected");
-            break;
-            default:
-              // TODO: Proper error handling
-              alert('Unknown Error');
-            break;
-          }
-          
-        }, this));
+        this._sendPatch(null, properties, null);
       },
       
       _onExtensionPatch: function (event) {
-        var extensions = event.data.extensions;
-        
-        this._ioHandler.patch(this._editor.config.coops.serverUrl, { extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+        this._sendPatch(null, null, event.data.extensions);
+      },
+      
+      _sendPatch: function (patch, properties, extensions) {
+        this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, properties: properties, extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
           switch (status) {
             case 204:
               // Request was ok
