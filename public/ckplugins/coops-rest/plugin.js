@@ -167,6 +167,7 @@
           this._editor.on("CoOPS:ContentPatch", this._onContentPatch, this);
           this._editor.on("CoOPS:ContentRevert", this._onContentRevert, this);
           this._editor.on("propertiesChange", this._onPropertiesChange, this);
+          this._editor.on("CoOPS:ExtensionPatch", this._onExtensionPatch, this);
 
           if (this._editor.config.coops.restPolling !== 'manual') {
             this._startUpdatePolling();
@@ -208,6 +209,26 @@
         };
         
         this._ioHandler.patch(this._editor.config.coops.serverUrl, { properties: properties, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+          switch (status) {
+            case 204:
+              // Request was ok
+            break;
+            case 409:
+              this._editor.fire("CoOPS:PatchRejected");
+            break;
+            default:
+              // TODO: Proper error handling
+              alert('Unknown Error');
+            break;
+          }
+          
+        }, this));
+      },
+      
+      _onExtensionPatch: function (event) {
+        var extensions = event.data.extensions;
+        
+        this._ioHandler.patch(this._editor.config.coops.serverUrl, { extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
           switch (status) {
             case 204:
               // Request was ok
