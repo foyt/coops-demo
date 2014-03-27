@@ -13,7 +13,7 @@
       
       _onSessionStart: function () {
         this._editor.on("selectionChange", this._onSelectionChange, this);
-        this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this);
+        this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this, null, 9999);
         this._editor.document.on("mouseup", function () {
           this._checkSelection();
         }, this);
