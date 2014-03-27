@@ -333,10 +333,12 @@
         if (this._sessionId !== patch.sessionId) {
           // Received a patch from other client
           if (this._editor.fire("CoOPS:PatchReceived", {
+            sessionId: patch.sessionId,
             patch : patch.patch,
             checksum: patch.checksum,
             revisionNumber: patch.revisionNumber,
-            properties: patch.properties
+            properties: patch.properties,
+            extensions: patch.extensions,
           })) {
             this._revisionNumber = patch.revisionNumber;
             callback();
