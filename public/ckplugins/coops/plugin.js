@@ -4,7 +4,6 @@
   CoOps = CKEDITOR.tools.createClass({
     $: function(editor) {
       this._editor = editor;
-      this._lastSelectionRanges = null;
       this._unsavedContent = null;
       this._savedContent = null;
       
