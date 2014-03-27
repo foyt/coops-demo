@@ -6,8 +6,73 @@
       this._editor = editor;
       this._colorIterator = 0;
       this._colors = this._createCursorColors(0.5, 64);
+      
+      this._editor.on("CoOPS:SessionStart", this._onSessionStart, this);
     },
     proto : {
+      
+      _onSessionStart: function () {
+        this._editor.on("selectionChange", this._onSelectionChange, this);
+        this._editor.document.on("mouseup", function () {
+          this._checkSelection();
+        }, this);
+        this._editor.on("key", function () {
+          this._checkSelection();
+        }, this);
+      },
+      
+      _onSelectionChange: function (event) {
+        var selection = event.data.selection;
+        var ranges = selection.getRanges();
+        if (ranges.length > 0) {
+          var selections = [];
+          
+          for ( var i = 0, l = ranges.length; i < l; i++) {
+            var range = ranges[i];
+            
+            var startContainer = this._createXPath(range.startContainer);
+            
+            if (range.collapsed) {
+              selections.push({
+                collapsed: range.collapsed,
+                startContainer: startContainer,
+                startOffset: range.startOffset,
+                endOffset: range.endOffset
+              });
+            } else {
+              var endContainer = this._createXPath(range.endContainer);
+              selections.push({
+                collapsed: range.collapsed,
+                startContainer: startContainer,
+                startOffset: range.startOffset,
+                endContainer: endContainer,
+                endOffset: range.endOffset
+              });
+            }
+          }
+          
+          this._pendingSelections = selections;
+          if (!this._sendTimeout) {
+            this._sendTimeout = CKEDITOR.tools.setTimeout(function() {
+              this._editor.fire('CoOPS:ExtensionPatch', {
+                extensions : {
+                  ckcur : {
+                    selections : this._pendingSelections
+                  }
+                }
+              });
+              
+              this._pendingSelections = null;
+              this._sendTimeout = null;
+            }, this._sendInterval, this);
+          }
+        }
+      },
+      
+      _checkSelection: function () {
+        this._editor.forceNextSelectionCheck();
+        this._editor.selectionChange();
+      },
 
       _nextColor: function () {
         this._colorIterator = (this._colorIterator + 1) % this._colors.length;
@@ -38,6 +103,27 @@
         });
         
         return colors;
+      },
+      
+      _findNodeByXPath : function(xpath) {
+        var document = this._editor.document.$;
+        var result = document.evaluate(xpath, document, null, XPathResult.ANY_TYPE, null);
+        return new CKEDITOR.dom.node(result.iterateNext());
+      },
+      
+      _createXPath: function(node) {
+        if (node.type === CKEDITOR.NODE_DOCUMENT) {
+          return "/";
+        } else {
+          var parent = node.getParent();
+          if (!parent) {
+            return "/node()[" + (node.getIndex(true) + 1) + "]";
+          } else {
+            return this._createXPath(parent) + "/node()[" + (node.getIndex(true) + 1) + "]";
+          }
+        }
+        
+        return null;
       }
       
     }
