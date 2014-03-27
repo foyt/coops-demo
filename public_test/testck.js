@@ -209,7 +209,6 @@
           });
           
           $('.ck-rev').val(patchRevision);
-          console.log("Patch - 204: " + patchRevision);
           callback(204);
         }
       } else {
