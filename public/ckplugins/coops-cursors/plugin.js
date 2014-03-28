@@ -172,50 +172,54 @@
       
       _createBoxes: function (range) {
         var selectionBoxes = [];
-        var nativeRange = this._editor.document.$.createRange();
-        var boundingBox;
-        
-        if (range.collapsed) {
-          nativeRange.setStart(range.startContainer.$, range.startOffset);
-          nativeRange.setEnd(range.startContainer.$, range.endOffset);
-          boundingBox = nativeRange.getBoundingClientRect();
+        try {
+          var nativeRange = this._editor.document.$.createRange();
+          var boundingBox;
           
-          selectionBoxes.push({
-            top: Math.floor(boundingBox.top),
-            left: Math.floor(boundingBox.left),
-            width: 1,
-            height: Math.ceil(boundingBox.height)
-          });
-        } else {
-          var walker = new CKEDITOR.dom.walker(range);
-          walker.evaluator = function( node ) {
-            return node.type === CKEDITOR.NODE_TEXT;
-          };
-          
-          var node;
-          while ((node = walker.next())) {
-            if (node.equals(range.startContainer)) {
-              nativeRange.setStart(node.$, range.startOffset);
-            } else {
-              nativeRange.setStartBefore(node.$);
-            }
-          
-            if (node.equals(range.endContainer)) {
-              nativeRange.setEnd(node.$, range.endOffset);
-            } else {
-              nativeRange.setEndAfter(node.$);
-            }
-
+          if (range.collapsed) {
+            nativeRange.setStart(range.startContainer.$, range.startOffset);
+            nativeRange.setEnd(range.startContainer.$, range.endOffset);
             boundingBox = nativeRange.getBoundingClientRect();
-            if (boundingBox.height > 0 && boundingBox.width > 0) {
-              selectionBoxes.push({
-                top: Math.floor(boundingBox.top),
-                left: Math.floor(boundingBox.left),
-                width: Math.ceil(boundingBox.width),
-                height: Math.ceil(boundingBox.height)
-              });
+            
+            selectionBoxes.push({
+              top: Math.floor(boundingBox.top),
+              left: Math.floor(boundingBox.left),
+              width: 1,
+              height: Math.ceil(boundingBox.height)
+            });
+          } else {
+            var walker = new CKEDITOR.dom.walker(range);
+            walker.evaluator = function( node ) {
+              return node.type === CKEDITOR.NODE_TEXT;
+            };
+            
+            var node;
+            while ((node = walker.next())) {
+              if (node.equals(range.startContainer)) {
+                nativeRange.setStart(node.$, range.startOffset);
+              } else {
+                nativeRange.setStartBefore(node.$);
+              }
+            
+              if (node.equals(range.endContainer)) {
+                nativeRange.setEnd(node.$, range.endOffset);
+              } else {
+                nativeRange.setEndAfter(node.$);
+              }
+  
+              boundingBox = nativeRange.getBoundingClientRect();
+              if (boundingBox.height > 0 && boundingBox.width > 0) {
+                selectionBoxes.push({
+                  top: Math.floor(boundingBox.top),
+                  left: Math.floor(boundingBox.left),
+                  width: Math.ceil(boundingBox.width),
+                  height: Math.ceil(boundingBox.height)
+                });
+              }
             }
           }
+        } catch (e) {
+          this._editor.getCoOps().log("Could not create selection boxes:" + e);
         }
         
         return selectionBoxes;
