@@ -51,7 +51,9 @@
         var patch = this._diffMatchPatch.patch_toText(this._diffMatchPatch.patch_make(oldContent, diff));
 
         this._editor.fire("CoOPS:ContentPatch", {
-          patch: patch
+          patch: patch,
+          oldContent: oldContent,
+          newContent: newContent
         });
       },
     
@@ -80,7 +82,7 @@
       
       _applyChanges: function (newText) {
         // TODO: cross-browser support for document creation
-        var text = this._editor.getData();
+        var text = this._editor.getCoOps().getUnsavedContent();
 
         if (!text) {
           // We do not have old content so we can just directly set new content as editor data
@@ -105,7 +107,7 @@
           
           if (this._editor.config.coops.mode === 'development') {
             var newTextChecksum = this._createChecksum(newText);
-            var patchedText = this._removeLineBreaks(this._editor.getData());
+            var patchedText = this._editor.getCoOps().getUnsavedContent();
             var patchedDataChecksum = this._createChecksum(patchedText);
             if (newTextChecksum !== patchedDataChecksum) {
               this._editor.getCoOps().log(["Patching Failed", newText, patchedText]);
@@ -150,15 +152,11 @@
       
       _applyPatch: function (patch, patchChecksum, revisionNumber, callback) {
         this._editor.document.$.normalize();
-        var currentContent = this._editor.getData();
-        var patchBaseContent = this._editor.getCoOps().getSavedContent();
-        if (patchBaseContent === null) {
-          patchBaseContent = currentContent;
-          this._editor.getCoOps().log("Saved content missing. Patching against current content");
-        }
+        var unsavedContent = this._editor.getCoOps().getUnsavedContent();
+        var savedContent = this._editor.getCoOps().getSavedContent();
         
         var remoteDiff = this._diffMatchPatch.patch_fromText(patch);
-        var removePatchResult = this._diffMatchPatch.patch_apply(remoteDiff, patchBaseContent);
+        var removePatchResult = this._diffMatchPatch.patch_apply(remoteDiff, savedContent);
         
         if (this._isPatchApplied(removePatchResult)) {
           var remotePatchedText = removePatchResult[0];
@@ -167,7 +165,7 @@
           if (patchChecksum !== remotePatchedChecksum) {
             this._editor.getCoOps().log([
               "Reverting document because checksum did not match",
-              patchBaseContent,
+              savedContent,
               patch,
               revisionNumber,
               patchChecksum,
@@ -183,9 +181,9 @@
             if (locallyChanged) {
               this._editor.getCoOps().log("Received a patch but we got some local changes");
               
-              var localDiff = this._diffMatchPatch.diff_main(patchBaseContent, this._editor.getCoOps().getUnsavedContent());
+              var localDiff = this._diffMatchPatch.diff_main(savedContent, unsavedContent);
               this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-              localPatch = this._diffMatchPatch.patch_make(patchBaseContent, localDiff);
+              localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
               
               if (this._patchesEqual(localPatch, remoteDiff)) {
                 this._editor.getCoOps().log("Local change equals remote change, dropping local patch");
