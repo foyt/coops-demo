@@ -4,7 +4,6 @@
   CoOps = CKEDITOR.tools.createClass({
     $: function(editor) {
       this._editor = editor;
-      this._unsavedContent = null;
       this._savedContent = null;
       
       this._editor.on('contentChange', this._onContentChange, this);
@@ -25,19 +24,15 @@
       },
       
       isLocallyChanged: function () {
-        return (this._unsavedContent != null) && (this._savedContent != null) && (this._unsavedContent != this._savedContent);
+        return this.getUnsavedContent() !== this._savedContent;
       },
       
       getUnsavedContent: function () {
-        return this._unsavedContent;
+        return this._editor.getData().replace(/\n/g,"");
       },
       
       getSavedContent: function () {
         return this._savedContent;
-      },
-      
-      setUnsavedContent: function (unsavedContent) {
-        this._unsavedContent = unsavedContent;
       },
       
       setSavedContent: function (savedContent) {
@@ -53,7 +48,6 @@
       },
       
       _onContentChange: function (event) {
-        this.setUnsavedContent(event.data.currentContent);
         if (this.isLocallyChanged()) {
           this._editor.fire("CoOPS:ContentDirty", {
             unsavedContent: this.getUnsavedContent(),
@@ -63,9 +57,7 @@
       },
       
       _onSessionStart: function (event) {
-        var content = this._editor.getData();
-        this.setSavedContent(content);
-        this.setUnsavedContent(content);
+        this.setSavedContent(this.getUnsavedContent());
       },
       
       _onContentPatch: function (event) {
@@ -81,12 +73,14 @@
       },
       
       _onPatchAccepted: function (event) {
-        this.setSavedContent(this.getUnsavedContent());
+        if (event.data.content !== undefined) {
+          this.setSavedContent(event.data.content);
+        }
+
         this._editor.getChangeObserver().resume();
       },
       
       _onPatchMerged: function (event) {
-        this.setUnsavedContent(event.data.merged);
         this.setSavedContent(event.data.patched);
         this._editor.getChangeObserver().reset(event.data.merged);
         this._editor.getChangeObserver().resume();
@@ -98,14 +92,12 @@
       
       _onContentReverted: function (event) {
         this.setSavedContent(event.data.content);
-        this.setUnsavedContent(event.data.content);
         this._editor.getChangeObserver().reset(event.data.content);
         this._editor.getChangeObserver().resume();
       },
       
       _onPatchApplied: function (event) {
         this.setSavedContent(event.data.content);
-        this.setUnsavedContent(event.data.content);
       },
       
       _onJoined: function (event) {
