@@ -132,6 +132,7 @@
   RestConnector = CKEDITOR.tools.createClass({
     $ : function(editor) {
       this._editor = editor;
+      this._patchContent = {};
       this._ioHandler = editor.config.coops.restIOHandler||new DefaultIOHandler(editor);
       
       editor.on('CoOPS:Join', this._onCoOpsJoin, this);
@@ -183,7 +184,11 @@
 
       _onContentPatch : function(event) {
         var patch = event.data.patch;
-        this._sendPatch(patch, null, null);
+        var newContent = event.data.newContent;
+        
+        this._sendPatch(patch, null, null, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
+          this._patchContent[patchRevision] = newContent;
+        }, this));
       },
       
       _onPropertiesChange: function (event) {
@@ -201,11 +206,15 @@
         this._sendPatch(null, null, event.data.extensions);
       },
       
-      _sendPatch: function (patch, properties, extensions) {
+      _sendPatch: function (patch, properties, extensions, onSuccess) {
+        var patchRevision = this._revisionNumber + 1;
         this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, properties: properties, extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
           switch (status) {
             case 204:
               // Request was ok
+              if (onSuccess) {
+                onSuccess(patch, patchRevision, properties, extensions);
+              }
             break;
             case 409:
               this._editor.fire("CoOPS:PatchRejected");
@@ -320,10 +329,12 @@
         } else {
           // Our patch was accepted, yay!
           this._revisionNumber = patch.revisionNumber;
-
+          var content = this._patchContent[this._revisionNumber];
           this._editor.fire("CoOPS:PatchAccepted", {
-            revisionNumber: this._revisionNumber
+            revisionNumber: this._revisionNumber,
+            content: content
           });
+          delete this._patchContent[this._revisionNumber];
         }
       }
     }
