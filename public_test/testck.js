@@ -144,9 +144,11 @@
       this._revisions = [];
       
       this.element.append($('<div>').append($('<label>').text('Revision')));
-      this.element.append($('<input>').addClass('ck-rev').attr({"autocomplete": "off"}).val(this.options.revision));
+      this.element.append($('<input>').addClass('ck-revision-number').attr({"autocomplete": "off"}).val(this.options.revision));
       this.element.append($('<div>').append($('<label>').text('Content')));
       this.element.append($('<textarea>').addClass('ck-content').attr({"autocomplete": "off"}).css({ width: '100%' }).val(this.options.content));
+      this.element.append($('<div>').addClass('ck-revs'));
+      this.element.append($('<label>').text('Revisions'));
       
       this.element.append($('<div>')
         .addClass('patch-server-container')
@@ -162,7 +164,7 @@
     },
     
     revision: function () {
-      return parseInt(this.element.find('.ck-rev').val(), 10);
+      return parseInt(this.element.find('.ck-revision-number').val(), 10);
     },
     
     properties: function () {
@@ -182,14 +184,22 @@
             if (err) {
               callback(500, err);
             } else {
-              $('.ck-rev').val(patchRevision);
+              var checksum = hex_md5(patched);
+              
+              $('.ck-revision-number').val(patchRevision);
               $('.ck-content').val(patched);
-              $('.ck-content').attr('data-r-' + patchRevision, patch.replace(/\n/g,'\\n'));
+              $('.ck-revs').append(
+                $('<div>')
+                  .addClass('ck-rev')
+                  .append($('<span>').addClass('ck-rev-number').text(patchRevision))
+                  .append($('<span>').addClass('ck-revision-checksum').text(checksum))
+                  .append($('<span>').addClass('ck-revision-patch').text(patch.replace(/\n/g,'\\n')))
+              );
               
               this._revisions.push({
                 revisionNumber: patchRevision,
                 patch: patch,
-                checksum: hex_md5(patched),
+                checksum: checksum,
                 sessionId: sessionId,
                 properties: properties,
                 extensions: extensions
@@ -208,7 +218,7 @@
             extensions: extensions
           });
           
-          $('.ck-rev').val(patchRevision);
+          $('.ck-revision-number').val(patchRevision);
           callback(204);
         }
       } else {

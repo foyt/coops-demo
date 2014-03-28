@@ -45,6 +45,24 @@
   margin-right: 10px;
 }
 
+.ck-rev {
+  white-spape: nowrap;
+  font-family: courier;
+  font-size: 12px;
+}
+
+.ck-rev-number {
+}
+
+.ck-revision-checksum {
+  margin-left: 8px;
+}
+
+.ck-revision-patch {
+  margin-left: 8px;
+  color: #666;
+}
+
 .log-entry {
   font-family: courier;
   font-size: 12px;
