@@ -171,7 +171,6 @@
       },
       
       _createBoxes: function (range) {
-        var verticalMargin = 0;
         var selectionBoxes = [];
         var nativeRange = this._editor.document.$.createRange();
         var boundingBox;
@@ -182,10 +181,10 @@
           boundingBox = nativeRange.getBoundingClientRect();
           
           selectionBoxes.push({
-            top: Math.floor(boundingBox.top - verticalMargin),
+            top: Math.floor(boundingBox.top),
             left: Math.floor(boundingBox.left),
             width: 1,
-            height: Math.ceil(boundingBox.height + (verticalMargin * 2))
+            height: Math.ceil(boundingBox.height)
           });
         } else {
           var walker = new CKEDITOR.dom.walker(range);
@@ -210,10 +209,10 @@
             boundingBox = nativeRange.getBoundingClientRect();
             if (boundingBox.height > 0 && boundingBox.width > 0) {
               selectionBoxes.push({
-                top: Math.floor(boundingBox.top - verticalMargin),
+                top: Math.floor(boundingBox.top),
                 left: Math.floor(boundingBox.left),
                 width: Math.ceil(boundingBox.width),
-                height: Math.ceil(boundingBox.height + (verticalMargin * 2))
+                height: Math.ceil(boundingBox.height)
               });
             }
           }
