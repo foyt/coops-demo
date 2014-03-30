@@ -4,6 +4,7 @@
   CoOpsCursors = CKEDITOR.tools.createClass({
     $: function(editor) {
       this._editor = editor;
+      this._paused = true;
       this._colorIterator = 0;
       this._colors = this._createCursorColors(0.5, 64);
       this._clientSelections = {};
@@ -14,6 +15,8 @@
       _onSessionStart: function () {
         this._editor.on("selectionChange", this._onSelectionChange, this);
         this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this, null, 9999);
+        this._editor.on('CoOPS:PatchRejected', this._onPatchRejected, this);
+
         this._editor.document.on("mouseup", function () {
           this._checkSelection();
         }, this);
@@ -23,10 +26,23 @@
       },
       
       _onSelectionChange: function (event) {
-        var selection = event.data.selection;
+        this._checkSelection();
+        this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
+      },
+      
+      _onPatchRejected: function () {
+        CKEDITOR.tools.setTimeout(function() {
+          this._checkSelection();
+          this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
+        }, 1000, this);
+      },
+      
+      _createDispatchableSelection: function (selection) {
+        var result = null;
+        
         var ranges = selection.getRanges();
         if (ranges.length > 0) {
-          var selections = [];
+          result = [];
           
           for ( var i = 0, l = ranges.length; i < l; i++) {
             var range = ranges[i];
@@ -34,7 +50,7 @@
             var startContainer = this._createXPath(range.startContainer);
             
             if (range.collapsed) {
-              selections.push({
+              result.push({
                 collapsed: range.collapsed,
                 startContainer: startContainer,
                 startOffset: range.startOffset,
@@ -42,7 +58,7 @@
               });
             } else {
               var endContainer = this._createXPath(range.endContainer);
-              selections.push({
+              result.push({
                 collapsed: range.collapsed,
                 startContainer: startContainer,
                 startOffset: range.startOffset,
@@ -51,23 +67,41 @@
               });
             }
           }
-          
-          this._pendingSelections = selections;
-          if (!this._sendTimeout) {
-            this._sendTimeout = CKEDITOR.tools.setTimeout(function() {
-              this._editor.fire('CoOPS:ExtensionPatch', {
-                extensions : {
-                  ckcur : {
-                    selections : this._pendingSelections
-                  }
-                }
-              });
-              
-              this._pendingSelections = null;
-              this._sendTimeout = null;
-            }, this._sendInterval, this);
-          }
         }
+        
+        return result;
+      },
+
+      _dispatchSelectionChanges: function (dispatchable) {
+        if ((!this._lastDispatched) || (!this._dispatchablesEqual(this._lastDispatched, dispatchable))) {
+          this._editor.fire('CoOPS:ExtensionPatch', {
+            extensions : {
+              ckcur : {
+                selections : dispatchable
+              }
+            }
+          });
+          
+          this._lastDispatched = dispatchable;
+        }
+      },
+      
+      _dispatchablesEqual: function (d1, d2) {
+        if (d1.length === d2.length) {
+          for (var i = 0, l = d1.length; i < l; i++) {
+            if ((d1[i].startOffset !== d2[i].startOffset)||
+                (d1[i].endOffset !== d2[i].endOffset)||
+                (d1[i].startContainer !== d2[i].startContainer)||
+                (d1[i].collapsed !== d2[i].collapsed)||
+                (d1[i].endContainer !== d2[i].endContainer)) {
+              return false;
+            }
+          }
+          
+          return true;
+        }
+
+        return false;
       },
       
       _onPatchReceived: function (event) {
