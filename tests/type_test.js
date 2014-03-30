@@ -43,7 +43,7 @@
       });
       
       driver.findElement(webdriver.By.css('.ck-content')).getAttribute('value').then(function(value) {
-        assert.equal(value, '<p>a</p>\n');
+        assert.equal(utils.removeLineBreaks(value), '<p>a</p>');
       });
     });
   
