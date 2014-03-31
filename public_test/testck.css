@@ -31,6 +31,9 @@
 
 .ck-content {
   min-height: 100px;
+  -webkit-box-sizing: border-box;
+  -moz-box-sizing: border-box; 
+  box-sizing: border-box;      
 }
 
 #log{
@@ -43,6 +46,13 @@
   width: 400px;
   margin-left: 10px;
   margin-right: 10px;
+}
+
+.ck-revs {
+  overflow-y: auto;
+  height: 80px; 
+  border: 1px solid #aaa;
+  padding: 1px;
 }
 
 .ck-rev {

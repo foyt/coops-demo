@@ -176,8 +176,8 @@
       this.element.append($('<input>').addClass('ck-revision-number').attr({"autocomplete": "off"}).val(this.options.revision));
       this.element.append($('<div>').append($('<label>').text('Content')));
       this.element.append($('<textarea>').addClass('ck-content').attr({"autocomplete": "off"}).css({ width: '100%' }).val(this.options.content));
-      this.element.append($('<div>').addClass('ck-revs'));
       this.element.append($('<label>').text('Revisions'));
+      this.element.append($('<div>').addClass('ck-revs'));
       
       this.element.append($('<div>')
         .addClass('patch-server-container')
