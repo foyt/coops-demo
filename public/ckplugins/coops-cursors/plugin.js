@@ -6,7 +6,8 @@
       this._editor = editor;
       this._paused = true;
       this._colorIterator = 0;
-      this._colors = this._createCursorColors(0.5, 64);
+      this._svgAnimateIterator = 0;
+      this._colors = this._createCursorColors(64);
       this._clientSelections = {};
       this._editor.on("CoOPS:SessionStart", this._onSessionStart, this);
     },
@@ -151,13 +152,21 @@
         this._editor.forceNextSelectionCheck();
         this._editor.selectionChange();
       },
+      
+      _cssColor: function (color, alpha) {
+        if (alpha === 1) {
+          return '#' + color[0].toString(16) + color[1].toString(16) + color[2].toString(16);
+        } else {
+          return 'rgba(' + color.join(',') + ',' + alpha + ')';
+        }
+      },
 
       _nextColor: function () {
         this._colorIterator = (this._colorIterator + 1) % this._colors.length;
-        return 'rgba(' + this._colors[this._colorIterator].join(',') + ')';
+        return this._colors[this._colorIterator];
       },
       
-      _createCursorColors: function (alpha, step) {
+      _createCursorColors: function (step) {
         var colors = [];
 
         for ( var r = 255; r >= 0; r -= step) {
@@ -168,7 +177,7 @@
               b = Math.max(b, 0);
 
               if ((!(r === 0 && g === 0 && b === 0)) && (!(r === 255 && g === 255 && b === 255))) {
-                colors.push([ r, g, b, alpha ]);
+                colors.push([ r, g, b ]);
               }
             }
           }
@@ -259,6 +268,17 @@
         return selectionBoxes;
       },
       
+      _svgRect: function(x, y, width, height, animate, color, alpha) {
+        var result = '<rect x="' + x + '" y="' + y + '" width="' + width + '" height="' + height + '" style="fill:' + this._cssColor(color, alpha) + '">';
+        if (animate) {
+          var id = String(this._svgAnimateIterator++);
+          result += '<animate id="o' + id + '" attributeName="opacity" from="1" to="0" dur="0.5s" begin="0s;i' + id + '.end" />';
+          result += '<animate id="i' + id + '" attributeName="opacity" from="0" to="1" dur="0.5s" begin="o' + id + '.end" />';
+        }
+        result += '</rect>';
+        return result;
+      },
+      
       _drawClientSelections: function () {
         var clients = CKEDITOR.tools.objectKeys(this._clientSelections);
         var boxedSelections = [];
@@ -291,10 +311,14 @@
               var boxedSelection = boxedSelections[i];
               for (var j = 0, jl = boxedSelection.boxes.length; j < jl; j++) {
                 var box = boxedSelection.boxes[j];
-                svg += '<rect x="' + box.left + '" y="' + box.top + '" width="' + box.width + '" height="' + box.height + '" style="fill:' + boxedSelection.color + '"/>';
+                if (box.width === 1) {
+                  svg += this._svgRect(box.left, box.top, box.width, box.height, true, boxedSelection.color, 1);
+                  svg += this._svgRect(box.left - 2, box.top - 5, 5, 5, true, boxedSelection.color, 1);
+                } else {
+                  svg += this._svgRect(box.left, box.top, box.width, box.height, false, boxedSelection.color, 0.5);
+                }
               }
             }
-
             svg += '</svg>';
                       
             this._editor.document.getBody().setStyles({
