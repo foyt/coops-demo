@@ -226,7 +226,6 @@
           callback(204);
         }
       } else {
-        log("server", "409 - " + this.revision() + " !== " + revisionNumber);
         callback(409);
       }
     },
