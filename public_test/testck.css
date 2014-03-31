@@ -69,10 +69,14 @@
   color: #444;
 }
 
+.log-entry-server {
+  background: rgba(0, 64, 255, 0.15);
+}
+
 .log-entry-editor1 {
-  background: rgba(50, 50, 255, 0.05);
+  background: rgba(255, 128, 0, 0.15);
 }
 
 .log-entry-editor2 {
-  background: rgba(255, 50, 50, 0.05);
+  background: rgba(0, 255, 128, 0.15);
 }

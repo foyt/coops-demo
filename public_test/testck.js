@@ -4,6 +4,21 @@
   var PROTOCOL_VERSION = "1.0.0";
   var ALGORITHMS = ["dmp"];
   
+  var log = function (category, message) {
+    var text = null;
+    if ($.isArray(message)) {
+      text = message.join(',');
+    } else {
+      text = message;
+    }
+    
+    $('#log').append(
+      $('<div>')
+        .addClass('log-entry')
+        .addClass('log-entry-' + category)
+        .text(new Date() + ' - ' + category + ': ' + text));
+  };
+  
   CKEDITOR.plugins.addExternal('change', '/ckplugins/change/');
   CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
   CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
@@ -36,7 +51,7 @@
           { name: 'styles', items : [ 'Styles','Format' ] },
           { name: 'basicstyles', items : [ 'Bold','Italic','Strike','-','RemoveFormat' ] }
         ],
-        extraPlugins: 'coops,coops-dmp,coops-rest,coops-cursors',
+        extraPlugins: 'coops,coops-dmp,coops-rest',
         readOnly: true,
         coops: {
           serverUrl: '-',
@@ -47,18 +62,7 @@
             patch: $.proxy(this._mockPatchRequest, this)
           }),
           log: $.proxy(function (message) {
-            var text = null;
-            if ($.isArray(message)) {
-              text = message.join(',');
-            } else {
-              text = message;
-            }
-            
-            $('#log').append(
-              $('<div>')
-                .addClass('log-entry')
-                .addClass('log-entry-' + this._editor.name)
-                .text(new Date() + ' - ' + this._editor.name + ': ' + text));
+            log(this._editor.name, message);
           }, this)
         }
       });
@@ -178,10 +182,10 @@
     patch: function (sessionId, revisionNumber, patch, properties, extensions, callback) {
       if (this.revision() === revisionNumber) {
         var patchRevision = revisionNumber + 1;
-        
         if (patch) {
           this._dmpPatch(patch, this.content(), this.properties(), properties, $.proxy(function (err, patched) {
             if (err) {
+              log("server", "500 - " + err);
               callback(500, err);
             } else {
               var checksum = hex_md5(patched);
@@ -222,6 +226,7 @@
           callback(204);
         }
       } else {
+        log("server", "409 - " + this.revision() + " !== " + revisionNumber);
         callback(409);
       }
     },
@@ -245,6 +250,7 @@
     
     _dmpPatch: function (patch, text, fileProperties, patchProperties, callback) {
       var diffMatchPatch = new diff_match_patch();
+      diffMatchPatch.Match_Threshold = 0.0;
       
       var patchApplied = true;
       var patches = diffMatchPatch.patch_fromText(patch);
