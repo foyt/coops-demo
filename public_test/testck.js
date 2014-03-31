@@ -223,6 +223,8 @@
                   .append($('<span>').addClass('ck-rev-number').text(patchRevision))
                   .append($('<span>').addClass('ck-revision-checksum').text(checksum))
                   .append($('<span>').addClass('ck-revision-patch').text(patch.replace(/\n/g,'\\n')))
+                  .append($('<span>').addClass('ck-properties').text(properties ? JSON.stringify(properties):''))
+                  .append($('<span>').addClass('ck-extensions').text(extensions ? JSON.stringify(extensions):''))
               );
               
               this._revisions.push({
@@ -238,6 +240,16 @@
             }
           }, this));
         } else {
+          $('.ck-revs').append(
+              $('<div>')
+                .addClass('ck-rev')
+                .append($('<span>').addClass('ck-rev-number').text(patchRevision))
+                .append($('<span>').addClass('ck-revision-checksum').text(''))
+                .append($('<span>').addClass('ck-revision-patch').text(''))
+                .append($('<span>').addClass('ck-properties').text(properties ? JSON.stringify(properties):''))
+                .append($('<span>').addClass('ck-extensions').text(extensions ? JSON.stringify(extensions):''))
+            );
+          
           this._revisions.push({
             revisionNumber: patchRevision,
             patch: null,
