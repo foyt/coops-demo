@@ -16,14 +16,18 @@
       _onSessionStart: function () {
         this._editor.on("selectionChange", this._onSelectionChange, this);
         this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this, null, 9999);
-        this._editor.on('CoOPS:PatchRejected', this._onPatchRejected, this);
-
-        this._editor.document.on("mouseup", function () {
-          this._checkSelection();
-        }, this);
-        this._editor.on("key", function () {
-          this._checkSelection();
-        }, this);
+        this._editor.on("CoOPS:PatchRejected", this._onPatchRejected, this, null, 9999);
+        this._editor.on("CoOPS:PatchAccepted", this._onPatchAccepted, this, null, 9999);
+        this._editor.document.on("mouseup", this._onDocumentMouseUp, this);
+        this._editor.on("key", this._onEditorKey, this);
+      },
+      
+      _onDocumentMouseUp: function (event) {
+        this._checkSelection();
+      },
+      
+      _onEditorKey: function (event) {
+        this._checkSelection();
       },
       
       _onSelectionChange: function (event) {
@@ -31,11 +35,58 @@
         this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
       },
       
-      _onPatchRejected: function () {
-        CKEDITOR.tools.setTimeout(function() {
-          this._checkSelection();
-          this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
-        }, 1000, this);
+      _onPatchRejected: function (event) {
+        this._lastDispatched = null;
+      },
+      
+      _onPatchAccepted: function (event) {
+        this._checkSelection();
+        this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
+      },
+      
+      _onPatchReceived: function (event) {
+        var data = event.data;
+        var sessionId = event.data.sessionId;
+
+        var clientSelection = this._clientSelections[sessionId];
+        if (!clientSelection) {
+          clientSelection = this._clientSelections[sessionId] = {
+            color: this._nextColor(),
+            ranges: []
+          };
+        } else {
+          clientSelection.ranges = [];
+        }
+        
+        if (data.extensions && data.extensions.ckcur && data.extensions.ckcur.selections) {
+          var selections = data.extensions.ckcur.selections;
+          for (var i = 0, l = selections.length; i < l; i++) {
+            var selection = selections[i];
+            var startContainer = this._findNodeByXPath(selection.startContainer);
+            var startOffset = selection.startOffset;
+            var endOffset = selection.endOffset;
+            
+            try {
+              var range = new CKEDITOR.dom.range( this._editor.document );
+              range.setStart(startContainer, startOffset);
+              
+              if (selection.collapsed) {
+                range.setEnd(startContainer, endOffset);
+              } else {
+                var endContainer = this._findNodeByXPath(selection.endContainer);
+                range.setEnd(endContainer, endOffset);
+              }
+              
+              clientSelection.ranges.push(range);
+            } catch (e) {
+              throw e;
+            }
+          }
+        }
+        
+        this._drawClientSelections();
+        this._checkSelection();
+        this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
       },
       
       _createDispatchableSelection: function (selection) {
@@ -103,49 +154,6 @@
         }
 
         return false;
-      },
-      
-      _onPatchReceived: function (event) {
-        var data = event.data;
-        var sessionId = event.data.sessionId;
-
-        var clientSelection = this._clientSelections[sessionId];
-        if (!clientSelection) {
-          clientSelection = this._clientSelections[sessionId] = {
-            color: this._nextColor(),
-            ranges: []
-          };
-        } else {
-          clientSelection.ranges = [];
-        }
-        
-        if (data.extensions && data.extensions.ckcur && data.extensions.ckcur.selections) {
-          var selections = data.extensions.ckcur.selections;
-          for (var i = 0, l = selections.length; i < l; i++) {
-            var selection = selections[i];
-            var startContainer = this._findNodeByXPath(selection.startContainer);
-            var startOffset = selection.startOffset;
-            var endOffset = selection.endOffset;
-            
-            try {
-              var range = new CKEDITOR.dom.range( this._editor.document );
-              range.setStart(startContainer, startOffset);
-              
-              if (selection.collapsed) {
-                range.setEnd(startContainer, endOffset);
-              } else {
-                var endContainer = this._findNodeByXPath(selection.endContainer);
-                range.setEnd(endContainer, endOffset);
-              }
-              
-              clientSelection.ranges.push(range);
-            } catch (e) {
-              throw e;
-            }
-          }
-        }
-        
-        this._drawClientSelections();
       },
       
       _checkSelection: function () {
