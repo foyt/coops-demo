@@ -77,15 +77,17 @@
         }
       });
       
-      this._editor.on("key", function (event) {
-        var key = event.data.keyCode;
-        
-        if (key === (17 + CKEDITOR.CTRL)) {
-          this.restCheckUpdates();
-        } else if (key === (18 + CKEDITOR.ALT)) {
-          $('.testck').TestCK('restCheckUpdates');
-        }
-      }, this);
+      if (polling === 'ctrl') {
+        this._editor.on("key", function (event) {
+          var key = event.data.keyCode;
+          
+          if (key === (17 + CKEDITOR.CTRL)) {
+            this.restCheckUpdates();
+          } else if (key === (18 + CKEDITOR.ALT)) {
+            $('.testck').TestCK('restCheckUpdates');
+          }
+        }, this);
+      }
 
       this.element.append($('<div>')
         .addClass('ck-actions')
