@@ -18,6 +18,9 @@
         this._editor.on("CoOPS:PatchReceived", this._onPatchReceived, this, null, 9999);
         this._editor.on("CoOPS:PatchRejected", this._onPatchRejected, this, null, 9999);
         this._editor.on("CoOPS:PatchAccepted", this._onPatchAccepted, this, null, 9999);
+        this._editor.on("CoOPS:PatchApplied", this._onPatchApplied, this, null, 9999);
+        this._editor.on("CoOPS:PatchMerged", this._onPatchMerged, this, null, 9999);
+        
         this._editor.document.on("mouseup", this._onDocumentMouseUp, this);
         this._editor.on("key", this._onEditorKey, this);
       },
@@ -87,6 +90,14 @@
         this._drawClientSelections();
         this._checkSelection();
         this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
+      },
+      
+      _onPatchApplied: function (event) {
+        this._drawClientSelections();
+      },
+      
+      _onPatchMerged: function (event) {
+        this._drawClientSelections();
       },
       
       _createDispatchableSelection: function (selection) {
