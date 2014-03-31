@@ -47,7 +47,7 @@
       });
       
       driver.findElement(webdriver.By.css('.ck-content')).getAttribute('value').then(function(value) {
-        assert.equal(value, '<p>a</p>\n');
+        assert.equal(value, '<p>a</p>');
       });
     });
   
@@ -71,17 +71,15 @@
 
       // ck2 and server <p>abd</p><p>abc</p>
       utils.getCKData(driver, ck2Frame, function (data) {
-        assert.equal(utils.removeLineBreaks(data), '<p>abd</p><p>abc</p>', 'ck2');
+        assert.equal(utils.removeLineBreaks(data), '<p>abc</p><p>abd</p>', 'ck2');
       });
       
       driver.findElement(webdriver.By.css('.ck-content')).getAttribute('value').then(function(value) {
-        assert.equal(utils.removeLineBreaks(value), '<p>abd</p><p>abc</p>', 'server');
+        assert.equal(utils.removeLineBreaks(value), '<p>abc</p><p>abd</p>', 'server');
       });
       
       // update ck1 
       driver.findElement(webdriver.By.css('#ck1 .ck-action-update')).click();
-      
-      // Ck1 should also contain <p>abd</p><p>abc</p>
     });
   
   });
