@@ -185,7 +185,6 @@
       _onContentPatch : function(event) {
         var patch = event.data.patch;
         var newContent = event.data.newContent;
-        
         this._sendPatch(patch, null, null, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
           this._patchContent[patchRevision] = newContent;
         }, this));
@@ -205,7 +204,7 @@
       _onExtensionPatch: function (event) {
         this._sendPatch(null, null, event.data.extensions);
       },
-      
+
       _sendPatch: function (patch, properties, extensions, onSuccess) {
         var patchRevision = this._revisionNumber + 1;
         this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, properties: properties, extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
@@ -315,6 +314,7 @@
       _applyPatch: function (patch, callback) {
         if (this._sessionId !== patch.sessionId) {
           // Received a patch from other client
+          this._revisionNumber = patch.revisionNumber;
           if (this._editor.fire("CoOPS:PatchReceived", {
             sessionId: patch.sessionId,
             patch : patch.patch,
@@ -323,13 +323,13 @@
             properties: patch.properties,
             extensions: patch.extensions,
           })) {
-            this._revisionNumber = patch.revisionNumber;
             callback();
           }
         } else {
           // Our patch was accepted, yay!
           this._revisionNumber = patch.revisionNumber;
           var content = this._patchContent[this._revisionNumber];
+
           this._editor.fire("CoOPS:PatchAccepted", {
             revisionNumber: this._revisionNumber,
             content: content
