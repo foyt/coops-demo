@@ -58,26 +58,7 @@
       },
     
       _onContentDirty: function (event) {
-        if (!this._contentCoolingDown) {
-          this._contentCoolingDown = true;
-          this._emitContentPatch(event.data.savedContent, event.data.unsavedContent);
-
-          CKEDITOR.tools.setTimeout(function() {
-            if (this._pendingOldContent && this._pendingNewContent) {
-              this._emitContentPatch(this._pendingOldContent, this._pendingNewContent);
-              delete this._pendingOldContent;
-              delete this._pendingNewContent;
-            }
-            
-            this._contentCoolingDown = false;
-          }, this._contentCooldownTime, this);
-        } else {
-          if (!this._pendingOldContent) {
-            this._pendingOldContent = event.data.savedContent;
-          }
-          
-          this._pendingNewContent = event.data.unsavedContent;
-        }
+        this._emitContentPatch(event.data.savedContent, event.data.unsavedContent);
       },
       
       _applyChanges: function (newText) {
@@ -150,79 +131,70 @@
         return true;
       },
       
-      _applyPatch: function (patch, patchChecksum, revisionNumber, callback) {
+      _threeWayMerge: function (v0, v1, v2) {
+        var mergePatches = this._diffMatchPatch.patch_make(v0, v2);
+        return this._diffMatchPatch.patch_apply(mergePatches, v1);
+      },
+      
+      _applyPatch: function (patch, patchChecksum, revisionNumber) {
         this._editor.document.$.normalize();
-        var unsavedContent = this._editor.getCoOps().getUnsavedContent();
         var savedContent = this._editor.getCoOps().getSavedContent();
         
         var remoteDiff = this._diffMatchPatch.patch_fromText(patch);
         var removePatchResult = this._diffMatchPatch.patch_apply(remoteDiff, savedContent);
         
         if (this._isPatchApplied(removePatchResult)) {
-          var remotePatchedText = removePatchResult[0];
+          var remotePatchedText = this._removeLineBreaks(removePatchResult[0]);
           var remotePatchedChecksum = this._createChecksum(remotePatchedText);
           
           if (patchChecksum !== remotePatchedChecksum) {
-            this._editor.getCoOps().log([
-              "Reverting document because checksum did not match",
-              savedContent,
-              patch,
-              revisionNumber,
-              patchChecksum,
-              remotePatchedChecksum,
-              remotePatchedText
-            ]);
+            this._editor.getCoOps().log("Reverting document because checksum did not match");
+            this._editor.getCoOps().log(["remotePatchedChecksum:", remotePatchedChecksum]);
+            this._editor.getCoOps().log(["patchChecksum:", patchChecksum]);
+            this._editor.getCoOps().log(["patch:", patch]);
+            this._editor.getCoOps().log(["savedContent:", savedContent]);
+            this._editor.getCoOps().log(["remotePatchedText:", remotePatchedText]);
 
             this._editor.fire("CoOPS:ContentRevert");
           } else {
-            var localPatch = null;
-            var locallyChanged = this._editor.getCoOps().isLocallyChanged();
-
-            if (locallyChanged) {
-              this._editor.getCoOps().log("Received a patch but we got some local changes");
-              
-              var localDiff = this._diffMatchPatch.diff_main(savedContent, unsavedContent);
-              this._diffMatchPatch.diff_cleanupEfficiency(localDiff);
-              localPatch = this._diffMatchPatch.patch_make(savedContent, localDiff);
-              
-              if (this._patchesEqual(localPatch, remoteDiff)) {
-                this._editor.getCoOps().log("Local change equals remote change, dropping local patch");
-                localPatch = null;
-              }
-            }
+            var unsavedContent = this._editor.getCoOps().getUnsavedContent();
             
-            if (localPatch) {
-              var localPatchResult = this._diffMatchPatch.patch_apply(localPatch, remotePatchedText);
-              if (this._isPatchApplied(localPatchResult)) {
-                var locallyPatchedText = localPatchResult[0];
-                
-                try {
-                  this._applyChanges(locallyPatchedText);
-                } catch (e) {
-                  // Change applying of changed crashed, falling back to setData
-                  this._editor.setData(locallyPatchedText);
+            if (remotePatchedText === unsavedContent) {
+              this._editor.getCoOps().log("Local version equals remotely patched version, no need to apply the patch");
+              this._editor.fire("CoOPS:PatchApplied", {
+                content: unsavedContent
+              });
+            } else {
+              if (this._editor.getCoOps().isLocallyChanged()) {
+                this._editor.getCoOps().log("Applying patch into dirty content, three way merge is required");
+
+                var mergeResult = this._threeWayMerge(savedContent, unsavedContent, remotePatchedText);
+                if (!this._isPatchApplied(mergeResult)) {
+                  this._editor.getCoOps().log("Patch merging failed. Trying another way around");
+                  mergeResult = this._threeWayMerge(savedContent, remotePatchedText, unsavedContent);
                 }
                 
-                this._editor.fire("CoOPS:PatchMerged", {
-                  patched : remotePatchedText,
-                  merged: locallyPatchedText
-                });
-
-                callback();
-              }
-            } else {
-              try {
+                if (!this._isPatchApplied(mergeResult)) {
+                  this._editor.getCoOps().log("Patch merging failed, reverting local changes");
+                  this._applyChanges(remotePatchedText);
+                  this._editor.fire("CoOPS:PatchApplied", {
+                    content : remotePatchedText
+                  });
+                } else {
+                  var mergedContent = this._removeLineBreaks(mergeResult[0]);
+                  this._applyChanges(mergedContent);
+                  this._editor.fire("CoOPS:PatchMerged", {
+                    patched : remotePatchedText,
+                    merged: mergedContent
+                  });
+                }
+              } else {
+                this._editor.getCoOps().log("Applying patch");
                 this._applyChanges(remotePatchedText);
-              } catch (e) {
-                // Change applying of changed crashed, falling back to setData
-                this._editor.setData(remotePatchedText);
+                this._editor.fire("CoOPS:PatchApplied", {
+                  content : remotePatchedText
+                });
               }
-
-              this._editor.fire("CoOPS:PatchApplied", {
-                content : remotePatchedText
-              });
-              
-              callback();
             }
           }
           
@@ -231,7 +203,7 @@
           this._editor.fire("CoOPS:ContentRevert");
         }
       },
-      
+
       _applyNextPatch: function () {
         if (this._pendingPatches.length > 0) {
           // First we lock the editor, so we can do some magic without 
@@ -240,36 +212,11 @@
           this._lockEditor();
 
           var pendingPatch = this._pendingPatches.shift();
-          var _this = this;
-          this._applyPatch(pendingPatch.patch, pendingPatch.patchChecksum, pendingPatch.revisionNumber, function () {
-            _this._applyNextPatch();
-          });
+          this._applyPatch(pendingPatch.patch, pendingPatch.patchChecksum, pendingPatch.revisionNumber);
+          this._applyNextPatch();
         } else {
           this._unlockEditor();
         }
-      },
-      
-      _patchesEqual: function (patch1, patch2) {
-        if (patch1.length === patch2.length) {
-          for (var i = 0, l = patch1.length; i < l; i++) {
-            var diffs1 = patch1[i].diffs;
-            var diffs2 = patch2[i].diffs;
-            
-            if (diffs1.length === diffs2.length) {
-              for (var j = 0, dl = diffs1.length; j < dl; j++) {
-                if ((diffs1[j][0] !== diffs2[j][0])||(diffs1[j][1] !== diffs2[j][1])) {
-                  return false;
-                }
-              }
-            } else {
-              return false;
-            }
-          }
-          
-          return true;
-        }
-        
-        return false;
       },
 
       _onPatchReceived: function (event) {
