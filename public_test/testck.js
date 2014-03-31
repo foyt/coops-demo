@@ -45,18 +45,26 @@
       
     },
     _create : function() {
+      var plugins = $.url().param('plugins');
+      if (!plugins) {
+        plugins = 'coops,coops-dmp,coops-rest';
+      }
+      
+      var polling = $.url().param('poll') || 'manual';
+      var restPolling = polling === 'ctrl' ? 'manual' : polling;
+      
       this._editor = CKEDITOR.appendTo($('<div>').appendTo(this.element).get(0), {
         toolbar: [
           { name: 'insert', items : [ 'Image','Table','HorizontalRule','SpecialChar'] },
           { name: 'styles', items : [ 'Styles','Format' ] },
           { name: 'basicstyles', items : [ 'Bold','Italic','Strike','-','RemoveFormat' ] }
         ],
-        extraPlugins: 'coops,coops-dmp,coops-rest',
+        extraPlugins: plugins,
         readOnly: true,
         coops: {
           serverUrl: '-',
           mode: 'development',
-          restPolling: $.url().param('poll') || 'manual',
+          restPolling: restPolling,
           restIOHandler: new MockIOHandler({
             get: $.proxy(this._mockGetRequest, this),
             patch: $.proxy(this._mockPatchRequest, this)
@@ -67,6 +75,12 @@
         }
       });
       
+      this._editor.on("key", function (event) {
+        if (event.data.keyCode === 1114129) {
+          this._editor.restCheckUpdates();
+        }
+      }, this);
+
       this.element.append($('<div>')
         .addClass('ck-actions')
         .append($('<a>').addClass('ck-action-update').text('Update').attr('href', '#').click($.proxy(this._onUpdateClick, this)))
@@ -92,6 +106,7 @@
     
     _mockPatchRequest: function (url, parameters, callback) {
       $('#server').TestServer('patch', parameters.sessionId, parameters.revisionNumber, parameters.patch, parameters.properties, parameters.extensions, $.proxy(function (status) {
+        log("server", "PATCH mock " + url + ' - ' + status);
         callback(status);
       }, this));
     },
