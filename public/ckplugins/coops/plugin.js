@@ -76,8 +76,17 @@
         if (event.data.content !== undefined) {
           this.setSavedContent(event.data.content);
         }
-
+        
+        var unsavedContent = this.getUnsavedContent();
+        this._editor.getChangeObserver().reset(unsavedContent);
         this._editor.getChangeObserver().resume();
+        
+        if (this.isLocallyChanged()) {
+          this._editor.fire("CoOPS:ContentDirty", {
+            unsavedContent: unsavedContent,
+            savedContent: this.getSavedContent()
+          });
+        }
       },
       
       _onPatchMerged: function (event) {
