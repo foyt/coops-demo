@@ -45,6 +45,8 @@
       
     },
     _create : function() {
+      this.element.addClass('testck');
+
       var plugins = $.url().param('plugins');
       if (!plugins) {
         plugins = 'coops,coops-dmp,coops-rest';
@@ -76,8 +78,12 @@
       });
       
       this._editor.on("key", function (event) {
-        if (event.data.keyCode === 1114129) {
-          this._editor.restCheckUpdates();
+        var key = event.data.keyCode;
+        
+        if (key === (17 + CKEDITOR.CTRL)) {
+          this.restCheckUpdates();
+        } else if (key === (18 + CKEDITOR.ALT)) {
+          $('.testck').TestCK('restCheckUpdates');
         }
       }, this);
 
@@ -85,6 +91,10 @@
         .addClass('ck-actions')
         .append($('<a>').addClass('ck-action-update').text('Update').attr('href', '#').click($.proxy(this._onUpdateClick, this)))
       );
+    },
+    
+    restCheckUpdates: function () {
+      this._editor.restCheckUpdates();
     },
     
     _mockGetRequest: function (url, parameters, callback) {
@@ -147,7 +157,7 @@
 
     _onUpdateClick: function (event) {
       event.preventDefault();
-      this._editor.restCheckUpdates();
+      this.restCheckUpdates();
     },
     
     _destroy : function() {
