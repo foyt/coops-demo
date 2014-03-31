@@ -2,6 +2,7 @@
   
   var DiffMatchPatchMod = require('googlediff');
   var diffMatchPatch = new DiffMatchPatchMod();
+  diffMatchPatch.Match_Threshold = 0.0;
 
   exports.attach = function attach(options) {
     options.diffAlgorithms.push({
