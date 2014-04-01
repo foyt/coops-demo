@@ -19,6 +19,15 @@
   top: 0px;
 }
 
+h4 {
+  margin-bottom: 4px;
+}
+
+.editor-status {
+  text-align: right;
+  margin-bottom: 4px;
+}
+
 .ck-actions {
   position: absolute;
   top: 20px;

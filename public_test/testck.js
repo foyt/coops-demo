@@ -46,6 +46,7 @@
     },
     _create : function() {
       this.element.addClass('testck');
+      this.element.append($('<div>').addClass('editor-status').text('Initializing...'));
 
       var plugins = $.url().param('plugins');
       if (!plugins) {
@@ -93,6 +94,11 @@
         .addClass('ck-actions')
         .append($('<a>').addClass('ck-action-update').text('Update').attr('href', '#').click($.proxy(this._onUpdateClick, this)))
       );
+      
+      this._editor.on("CoOPS:SessionStart", $.proxy(this._onSessionStart, this));
+      this._editor.on("CoOPS:ContentDirty", $.proxy(this._onContentDirty, this));
+      this._editor.on("CoOPS:PatchSent", $.proxy(this._onPatchSent, this));
+      this._editor.on("CoOPS:PatchAccepted", $.proxy(this._onPatchAccepted, this));
     },
     
     restCheckUpdates: function () {
@@ -160,6 +166,22 @@
     _onUpdateClick: function (event) {
       event.preventDefault();
       this.restCheckUpdates();
+    },
+    
+    _onSessionStart: function (event) {
+      $(this.element).find('.editor-status').html('Loaded');
+    },
+    
+    _onContentDirty: function (event) {
+      $(this.element).find('.editor-status').html('Unsaved');
+    },
+    
+    _onPatchSent: function (event) {
+      $(this.element).find('.editor-status').html('Saving...');
+    },
+    
+    _onPatchAccepted: function (event) {
+      $(this.element).find('.editor-status').html('Saved');
     },
     
     _destroy : function() {
