@@ -132,7 +132,7 @@
   RestConnector = CKEDITOR.tools.createClass({
     $ : function(editor) {
       this._editor = editor;
-      this._patchContent = {};
+      this._patchData = {};
       this._ioHandler = editor.config.coops.restIOHandler||new DefaultIOHandler(editor);
       
       editor.on('CoOPS:Join', this._onCoOpsJoin, this);
@@ -186,7 +186,9 @@
         var patch = event.data.patch;
         var newContent = event.data.newContent;
         this._sendPatch(patch, null, null, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
-          this._patchContent[patchRevision] = newContent;
+          this._patchData[patchRevision] = {
+            content: newContent
+          };
         }, this));
       },
       
@@ -198,11 +200,19 @@
           properties[changedProperties[i].property] = changedProperties[i].currentValue;
         }
         
-        this._sendPatch(null, properties, null);
+        this._sendPatch(null, properties, null, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
+          this._patchData[patchRevision] = {
+            properties: properties
+          };
+        }, this));
       },
       
       _onExtensionPatch: function (event) {
-        this._sendPatch(null, null, event.data.extensions);
+        this._sendPatch(null, null, event.data.extensions, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
+          this._patchData[patchRevision] = {
+            extensions: extensions
+          };
+        }, this));
       },
 
       _sendPatch: function (patch, properties, extensions, onSuccess) {
@@ -329,13 +339,15 @@
         } else {
           // Our patch was accepted, yay!
           this._revisionNumber = patch.revisionNumber;
-          var content = this._patchContent[this._revisionNumber];
+          var patchData = this._patchData[this._revisionNumber];
 
           this._editor.fire("CoOPS:PatchAccepted", {
             revisionNumber: this._revisionNumber,
-            content: content
+            content: patchData.content,
+            properties: patchData.properties,
+            extensions: patchData.extensions
           });
-          delete this._patchContent[this._revisionNumber];
+          delete this._patchData[this._revisionNumber];
         }
       }
     }
