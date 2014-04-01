@@ -214,6 +214,7 @@
               if (onSuccess) {
                 onSuccess(patch, patchRevision, properties, extensions);
               }
+              this._editor.fire("CoOPS:PatchSent");
             break;
             case 409:
               this._editor.fire("CoOPS:PatchRejected");
