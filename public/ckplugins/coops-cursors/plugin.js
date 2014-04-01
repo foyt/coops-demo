@@ -239,8 +239,26 @@
           var boundingBox;
           
           if (range.collapsed) {
-            nativeRange.setStart(range.startContainer.$, range.startOffset);
-            nativeRange.setEnd(range.startContainer.$, range.endOffset);
+            if (range.startContainer.type === CKEDITOR.NODE_ELEMENT && (range.startOffset === range.endOffset) && (!range.startContainer.getChild(range.endOffset))) {
+              var walkerRange = new CKEDITOR.dom.range(range.startContainer);
+              walkerRange.selectNodeContents(range.startContainer);
+              var walker = new CKEDITOR.dom.walker(walkerRange);
+              walker.evaluator = function( node ) {
+                return node.type === CKEDITOR.NODE_TEXT;
+              };
+              var lastTextNode = walker.lastForward();
+              if (lastTextNode) {
+                nativeRange.setStart(lastTextNode.$, lastTextNode.getLength());
+                nativeRange.setEnd(lastTextNode.$, lastTextNode.getLength());
+              } else {
+                return [];
+              }
+              
+            } else {
+              nativeRange.setStart(range.startContainer.$, range.startOffset);
+              nativeRange.setEnd(range.startContainer.$, range.endOffset);
+            }
+            
             boundingBox = nativeRange.getBoundingClientRect();
             
             selectionBoxes.push({
