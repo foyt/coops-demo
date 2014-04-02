@@ -69,27 +69,32 @@
           // We do not have old content so we can just directly set new content as editor data
           this._editor.setData(newText);
         } else {
-          // Read original and patched texts into html documents
-          var document1 = document.implementation.createHTMLDocument('');
-          var document2 = document.implementation.createHTMLDocument('');
-          document1.documentElement.innerHTML = this._editor.dataProcessor.toHtml( text );
-          document2.documentElement.innerHTML = this._editor.dataProcessor.toHtml( newText );
-
-          // Create delta of two created documents
-          var delta = this._fmes.diff(document1, document2);
-          
-          // And apply delta into a editor
-          (new InternalPatch()).apply(this._editor.document.$, delta);
-          this._editor._.data = this._editor.dataProcessor.toHtml(this._editor.document.getBody().$.innerHTML);
-          
-          if (this._editor.config.coops.mode === 'development') {
-            var newTextChecksum = this._createChecksum(newText);
-            var patchedText = this._editor.getCoOps().getUnsavedContent();
-            var patchedDataChecksum = this._createChecksum(patchedText);
-            if (newTextChecksum !== patchedDataChecksum) {
-              this._editor.getCoOps().log(["Patching Failed", newText, patchedText]);
-              throw new Error("Patching failed");
+          try {
+            // Read original and patched texts into html documents
+            var document1 = document.implementation.createHTMLDocument('');
+            var document2 = document.implementation.createHTMLDocument('');
+            document1.documentElement.innerHTML = this._editor.dataProcessor.toHtml( text );
+            document2.documentElement.innerHTML = this._editor.dataProcessor.toHtml( newText );
+  
+            // Create delta of two created documents
+            var delta = this._fmes.diff(document1, document2);
+            
+            // And apply delta into a editor
+            (new InternalPatch()).apply(this._editor.document.$, delta);
+            this._editor._.data = this._editor.dataProcessor.toHtml(this._editor.document.getBody().$.innerHTML);
+            
+            if (this._editor.config.coops.mode === 'development') {
+              var newTextChecksum = this._createChecksum(newText);
+              var patchedText = this._editor.getCoOps().getUnsavedContent();
+              var patchedDataChecksum = this._createChecksum(patchedText);
+              if (newTextChecksum !== patchedDataChecksum) {
+                this._editor.getCoOps().log(["Patching Failed", newText, patchedText]);
+                throw new Error("Patching failed");
+              }
             }
+          } catch (e) {
+            this._editor.getCoOps().log(["DiffXmlJs patching failed", newText]);
+            this._editor.setData(newText);
           }
         }
       },
