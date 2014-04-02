@@ -4,7 +4,8 @@
   CoOpsCursors = CKEDITOR.tools.createClass({
     $: function(editor) {
       this._editor = editor;
-      this._paused = true;
+      this._lastDispatched = null;
+      this._lastSaved = null;
       this._colorIterator = 0;
       this._svgAnimateIterator = 0;
       this._colors = this._createCursorColors(64);
@@ -43,6 +44,10 @@
       },
       
       _onPatchAccepted: function (event) {
+        if (event.data.extensions && event.data.extensions.ckcur) {
+          this._lastSaved = this._lastDispatched;
+        }
+        
         this._checkSelection();
         this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
       },
@@ -136,17 +141,19 @@
       },
 
       _dispatchSelectionChanges: function (dispatchable) {
-        if ((!this._lastDispatched) || (!this._dispatchablesEqual(this._lastDispatched, dispatchable))) {
-          this._editor.fire('CoOPS:ExtensionPatch', {
-            extensions : {
-              ckcur : {
-                selections : dispatchable
-              }
-            }
-          });
-          
-          this._lastDispatched = dispatchable;
+        if ((this._lastDispatched && this._dispatchablesEqual(this._lastDispatched, dispatchable)) || (this._lastSaved && this._dispatchablesEqual(this._lastSaved, dispatchable))) {
+          return;
         }
+
+        this._editor.fire('CoOPS:ExtensionPatch', {
+          extensions : {
+            ckcur : {
+              selections : dispatchable
+            }
+          }
+        });
+        
+        this._lastDispatched = dispatchable;
       },
       
       _dispatchablesEqual: function (d1, d2) {
