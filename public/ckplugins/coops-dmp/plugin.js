@@ -69,10 +69,6 @@
           // We do not have old content so we can just directly set new content as editor data
           this._editor.setData(newText);
         } else {
-          if (this._editor.config.coops.mode === 'development') {
-            newText = this._removeLineBreaks(newText);
-          }
-          
           // Read original and patched texts into html documents
           var document1 = document.implementation.createHTMLDocument('');
           var document2 = document.implementation.createHTMLDocument('');
