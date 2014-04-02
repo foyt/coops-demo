@@ -8,6 +8,8 @@
     var text = null;
     if ($.isArray(message)) {
       text = message.join(',');
+    } if ($.isPlainObject(message)) {
+      text = JSON.stringify(message);
     } else {
       text = message;
     }
