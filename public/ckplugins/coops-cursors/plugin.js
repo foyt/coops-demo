@@ -243,8 +243,6 @@
         var selectionBoxes = [];
         try {
           var nativeRange = this._editor.document.$.createRange();
-          var boundingBox;
-          
           if (range.collapsed) {
             if (range.startContainer.type === CKEDITOR.NODE_ELEMENT && (range.startOffset === range.endOffset) && (!range.startContainer.getChild(range.endOffset))) {
               var walkerRange = new CKEDITOR.dom.range(range.startContainer);
@@ -266,11 +264,11 @@
               nativeRange.setEnd(range.startContainer.$, range.endOffset);
             }
             
-            boundingBox = nativeRange.getBoundingClientRect();
-            
+            var boundingBox = nativeRange.getBoundingClientRect();
+            var scrollPosition = this._editor.window.getScrollPosition();
             selectionBoxes.push({
-              top: Math.floor(boundingBox.top),
-              left: Math.floor(boundingBox.left),
+              top: Math.floor(boundingBox.top) + scrollPosition.y,
+              left: Math.floor(boundingBox.left) + scrollPosition.x,
               width: 1,
               height: Math.ceil(boundingBox.height)
             });
@@ -294,11 +292,12 @@
                 nativeRange.setEndAfter(node.$);
               }
   
-              boundingBox = nativeRange.getBoundingClientRect();
+              var boundingBox = nativeRange.getBoundingClientRect();
+              var scrollPosition = this._editor.window.getScrollPosition();
               if (boundingBox.height > 0 && boundingBox.width > 0) {
                 selectionBoxes.push({
-                  top: Math.floor(boundingBox.top),
-                  left: Math.floor(boundingBox.left),
+                  top: Math.floor(boundingBox.top) + scrollPosition.y,
+                  left: Math.floor(boundingBox.left) + scrollPosition.x,
                   width: Math.ceil(boundingBox.width),
                   height: Math.ceil(boundingBox.height)
                 });
@@ -350,7 +349,8 @@
         
         switch (drawMode) {
           case 'SVG':
-            var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%'>";
+            var svgDimensions = this._boxedSelectionsDimensions(boxedSelections);
+            var svg = "<svg xmlns='http://www.w3.org/2000/svg' width='" + svgDimensions.width + "' height='" + svgDimensions.height + "'>";
             for (var i = 0, l = boxedSelections.length; i < l; i++) {
               var boxedSelection = boxedSelections[i];
               for (var j = 0, jl = boxedSelection.boxes.length; j < jl; j++) {
@@ -372,23 +372,13 @@
             });
           break;
           case 'CANVAS':
-            var canvasHeight = 0;
-            var canvasWidth = 0;
-            for (var i = 0, l = boxedSelections.length; i < l; i++) {
-              var boxedSelection = boxedSelections[i];
-              for (var j = 0, jl = boxedSelection.boxes.length; j < jl; j++) {
-                var box = boxedSelection.boxes[j];
-                canvasHeight = Math.max(canvasHeight, box.top + box.height);
-                canvasWidth = Math.max(canvasWidth, box.left + box.width);
-              }
-            }
-            
+            var canvasDimensions = this._boxedSelectionsDimensions(boxedSelections);
             if (!this._canvas) {
               this._canvas = document.createElement('canvas');
             }
             
-            this._canvas.height = canvasHeight;
-            this._canvas.width = canvasWidth;
+            this._canvas.height = canvasDimensions.height;
+            this._canvas.width = canvasDimensions.width;
             var ctx = this._canvas.getContext("2d");
             
             for (var i = 0, l = boxedSelections.length; i < l; i++) {
@@ -407,6 +397,24 @@
             });
           break;
         }
+      },
+      
+      _boxedSelectionsDimensions: function (boxedSelections) {
+        var height = 0;
+        var width = 0;
+        for (var i = 0, l = boxedSelections.length; i < l; i++) {
+          var boxedSelection = boxedSelections[i];
+          for (var j = 0, jl = boxedSelection.boxes.length; j < jl; j++) {
+            var box = boxedSelection.boxes[j];
+            height = Math.max(height, box.top + box.height);
+            width = Math.max(width, box.left + box.width);
+          }
+        }
+        
+        return {
+          width: width,
+          height: height
+        };
       },
       
       _drawBoxes: function (selectionBoxes) {
