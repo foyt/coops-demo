@@ -9,7 +9,7 @@
   var settings = require('./settings.json');
   var views = require('./views.js');
   var auth = require('./auth.js');
-  var api = require('./api');
+  var rest = require('./rest');
   var patterns = require('./patterns.js');
 
   var app = express();
@@ -122,16 +122,16 @@
      */
     
     // https://github.com/foyt/coops-spec/#get--load-request    
-    app.get('/files/:fileid', [auth.loggedInNoRedirect, nocache], api.fileGet);
+    app.get('/files/:fileid', [auth.loggedInNoRedirect, nocache], rest.fileGet);
     
     // https://github.com/foyt/coops-spec/#get-update-update-request
-    app.get('/files/:fileid/update', [auth.loggedInNoRedirect, nocache], api.fileUpdate);
+    app.get('/files/:fileid/update', [auth.loggedInNoRedirect, nocache], rest.fileUpdate);
     
     // https://github.com/foyt/coops-spec/#patch--patch-request
-    app.patch('/files/:fileid', [auth.loggedInNoRedirect, nocache], api.filePatch);
+    app.patch('/files/:fileid', [auth.loggedInNoRedirect, nocache], rest.filePatch);
     
     // https://github.com/foyt/coops-spec/#get-join-join-request
-    app.get('/files/:fileid/join', [auth.loggedInNoRedirect, nocache], api.fileJoin);
+    app.get('/files/:fileid/join', [auth.loggedInNoRedirect, nocache], rest.fileJoin);
   });
   
   app.configure('development', function(){

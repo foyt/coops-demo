@@ -19,58 +19,53 @@
   
   module.exports = {
     
-    fileGet: function (req, res) {
-      var revisionNumber = parseInt(req.query.revisionNumber, 10);
+    fileGet: function (revisionNumber, fileId, done) {
       if (isNaN(revisionNumber)) {
-        findFile(req.params.fileid, function (err, file) {
+        findFile(fileId, function (err, file) {
           if (err) {
-            res.send(500, err);
+            done(err, 500, null);
           } else {
             if (!file) {
-              res.send(404, "Not Found");
+              done("Not Found", 404, null);
             } else {
-              res.setHeader('Content-Type', 'application/json; charset=utf-8');
-              res.send(200, JSON.stringify({
+              done(null, 200, {
                 "revisionNumber": file.revisionNumber,
                 "content": file.content,
                 "contentType": file.contentType,
                 "properties": file.properties
-              }));
+              });
             }
           }
         });
       } else {
-        res.send(501, "Not implemented");
+        done("Not implemented", 501, null);
       }
     },
     
-    fileUpdate: function (req, res) {
-      var revisionNumber = parseInt(req.query.revisionNumber, 10);
+    fileUpdate: function (revisionNumber, fileId, done) {
       if (isNaN(revisionNumber)) {
-        res.send(400, "revisionNumber parameter is missing");
+        done("revisionNumber parameter is missing", 400, null);
         return;
       }
       
-      findFile(req.params.fileid, function (err, file) {
+      findFile(fileId, function (err, file) {
         if (err) {
-          res.send(500, err);
+          done(err, 500, null);
         } else {
           if (!file) {
-            res.send(404, "Not Found");
+            done("Not Found", 404, null);
           } else {
-            
             db.filerevisions.find( { fileId: file._id,  "revisionNumber": { $gt: revisionNumber } }, function (err, fileRevisions) {
               if (err) {
-                res.send(err, 500);
+                done(err, 500, null);
               } else {
                 if (fileRevisions.length === 0) {
-                  res.send(204);
+                  done(null, 204, null);
                 } else {
                   var patches = [];
                   
                   for (var i = 0, l = fileRevisions.length; i < l; i++) {
                     var fileRevision = fileRevisions[i];
-                    // TODO: Extensions
                     patches.push({
                       "sessionId": fileRevision.sessionId,
                       "revisionNumber": parseInt(fileRevision.revisionNumber, 10),
@@ -80,9 +75,8 @@
                       "extensions": fileRevision.extensions
                     });
                   }
-
-                  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-                  res.send(200, JSON.stringify(patches));
+                  
+                  done(null, 200, patches);
                 }
               }
             });
@@ -91,29 +85,26 @@
       });
     },
     
-    filePatch: function (req, res) {
-      var fileId = req.params.fileid;
-      var user = req.user;
-      var reqBody = req.body;
+    filePatch: function (fileId, patch, done) {
       var valid = true;
       var message = null;
       var status = 200;
       var algorithm = null;
       
-      if (!reqBody || !reqBody.sessionId) {
+      if (!patch || !patch.sessionId) {
         valid = false;
         message = "Invalid request";
         status = 400;
       }
       
-      db.sessions.findOne({ _id: new ObjectId( reqBody.sessionId.toString() ) }, function (sessionErr, session) {
+      db.sessions.findOne({ _id: new ObjectId( patch.sessionId.toString() ) }, function (sessionErr, session) {
         if (sessionErr) {
-          res.send(sessionErr, 500);
+          done(sessionErr, 500, null);
           return;
         }
         
         if (!session) {
-          res.send("Session could not be found", 403);
+          done("Session could not be found", 403);
           return;
         }
 
@@ -125,45 +116,45 @@
         }
         
         if (!valid) {
-          res.send(message, status);
+          done(message, status);
         } else {
           findFile(fileId, function (err, file) {
             if (err) {
-              res.send(err, 500);
+              done(err, 500);
             } else {
-              if (file.revisionNumber != reqBody.revisionNumber) {
-                res.send("Server version does not match client version", 409);
+              if (parseInt(file.revisionNumber, 10) !== parseInt(patch.revisionNumber, 10)) {
+                done("Server version does not match client version", 409);
               } else {
                 var patchRevisionNumber = file.revisionNumber + 1;
-                var patch = reqBody.patch;
-                var sessionId = reqBody.sessionId;
+                var patchText = patch.patch;
+                var sessionId = patch.sessionId;
                 var fileProperties = file.properties||{};
-                var patchProperties = reqBody.properties;
-                var patchExtensions = reqBody.extensions;
+                var patchProperties = patch.properties;
+                var patchExtensions = patch.extensions;
 
-                algorithm.patch(patch, file.content, fileProperties, patchProperties, function (err, content, patchProperties) {
+                algorithm.patch(patchText, file.content, fileProperties, patchProperties, function (err, content, patchProperties) {
                   if (err) {
-                    res.send(err, 409);
+                    done(err, 409);
                   } else {
                     var checksum = crypto.createHash('md5').update(content).digest('hex');
 
                     db.filerevisions.insert({
                       fileId: file._id,
                       revisionNumber: patchRevisionNumber,
-                      patch: patch,
+                      patch: patchText,
                       checksum: checksum,
                       sessionId: sessionId,
                       properties: patchProperties,
                       extensions: patchExtensions
                     }, function (revisionErr, fileRevision) {
                       if (revisionErr) {
-                        res.send(revisionErr, 500);
+                        done(revisionErr, 500);
                       } else {
                         db.files.update({ _id: new ObjectId(fileId.toString()) },{ content: content, revisionNumber: patchRevisionNumber, properties: _.extend(fileProperties, fileRevision.properties), contentType: file.contentType, }, { multi: false }, function(updateErr) {
                           if (updateErr) {
-                            res.send(updateErr, 500);
+                            done(updateErr, 500);
                           } else {
-                            res.send(204);
+                            done(null, 204);
                           }
                         });
                       }
@@ -177,28 +168,21 @@
       });
     },
     
-    fileJoin: function (req, res) {
-      findFile(req.params.fileid, function (err, file) {
+    fileJoin: function (fileId, userId, clientAlgorithms, protocolVersion, done) {
+      findFile(fileId, function (err, file) {
         if (err) {
-          res.send(500, err);
+          done(err, 500, null);
         } else {
           if (!file) {
-            res.send(404, "Not Found");
+            done("Not Found", 404, null);
           } else {
-            var clientAlgorithms = req.query.algorithm;
-            var protocolVersion = req.query.protocolVersion;
-            
-            if (!(clientAlgorithms instanceof Array)) {
-              clientAlgorithms = new Array(clientAlgorithms);
-            }
-            
             if ((clientAlgorithms.length === 0)||(!protocolVersion)) {
-              res.send(500, "Invalid request");
+              done("Invalid request", 500, null);
               return;
             }
             
             if (COOPS_PROTOCOL_VERSION !== protocolVersion) {
-              res.send(501, "Protocol version mismatch. Client is using " + protocolVersion + " and server " + COOPS_PROTOCOL_VERSION);
+              done("Protocol version mismatch. Client is using " + protocolVersion + " and server " + COOPS_PROTOCOL_VERSION, 501, null);
               return;
             }
             
@@ -215,17 +199,16 @@
             }
             
             if (!algorithm) {
-              res.send(501, "Server and client do not have a commonly supported algorithm. " +
-                  "Server supported: " + algorithms.getAlgorithms().toString() + ", " +
-                  "Client supported: " + clientAlgorithms.toString());
+              done("Server and client do not have a commonly supported algorithm. " +
+                   "Server supported: " + algorithms.getAlgorithms().toString() + ", " +
+                   "Client supported: " + clientAlgorithms.toString(), 501, null);
               return;
             } else {
-              db.sessions.insert({ userId: req.user.id, algorithm: algorithm.getName() }, function (sessionErr, session) {
+              db.sessions.insert({ userId: userId, algorithm: algorithm.getName() }, function (sessionErr, session) {
                 if (sessionErr) {
-                  res.send(500, sessionErr);
+                  done(sessionErr, 500, null);
                 } else {
-                  res.setHeader('Content-Type', 'application/json; charset=utf-8');
-                  res.send(200, JSON.stringify({
+                  done(null, 200, {
                     "sessionId": session._id,
                     "algorithm": session.algorithm,
                     "revisionNumber": parseInt(file.revisionNumber, 10),
@@ -235,7 +218,7 @@
                     "extensions": {
                       "x-http-method-override": {}
                     }
-                  }));
+                  });
                 }
               });
               
