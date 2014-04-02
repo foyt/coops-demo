@@ -35,7 +35,7 @@
       $('.editor-status').html('Unsaved');
     });
     
-    editor.on("CoOPS:ContentPatch", function (event) {
+    editor.on("CoOPS:PatchSent", function (event) {
       $('.editor-status').html('Saving...');
     });
     
