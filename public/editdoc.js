@@ -43,6 +43,23 @@
       $('.editor-status').html('Saved');
     });
     
+    // CoOPS Errors
+    
+    editor.on("CoOPS:Error", function (event) {
+      switch (event.data.severity) {
+        case 'CRITICAL':
+        case 'SEVERE':
+          $('.notifications').notifications('notification', 'error', event.data.message);
+        break;
+        case 'WARNING':
+          $('.notifications').notifications('notification', 'warning', event.data.message);
+        break;
+        default:
+          $('.notifications').notifications('notification', 'info', event.data.message);
+        break;
+      }
+    });
+    
     $('input[name="name"]').change(function (event) {
       var oldValue = $(this).parent().data('old-value');
       var value = $(this).val();
