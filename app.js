@@ -11,6 +11,7 @@
   var auth = require('./auth.js');
   var rest = require('./rest');
   var patterns = require('./patterns.js');
+  var ws = require('./ws');
 
   var app = express();
   var httpServer = null;
@@ -138,5 +139,7 @@
     app.use(express.errorHandler({ dumpExceptions: true, showStack: true }));
     app.use(express.static(__dirname + '/public_test'));
   });
+
+  ws.configure(httpServer, httpsServer);
   
 }).call(this);
