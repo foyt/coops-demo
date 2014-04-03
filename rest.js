@@ -48,7 +48,11 @@
         clientAlgorithms = [clientAlgorithms];
       }
       
-      api.fileJoin(req.params.fileid, req.user.id, clientAlgorithms, req.query.protocolVersion, function (err, code, join) {
+      var wsHost = (req.headers.host||'').replace(/\:[0-9]*/, '');
+      var wsPort = 8080;
+      var wssPort = null;
+      
+      api.fileJoin(req.params.fileid, req.user.id, wsHost, wsPort, wssPort, clientAlgorithms, req.query.protocolVersion, function (err, code, join) {
         if (err) {
           res.send(code, err);
         } else {

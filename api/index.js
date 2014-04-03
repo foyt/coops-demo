@@ -3,6 +3,7 @@
   var crypto = require('crypto');
   var _ = require('underscore');
   var ObjectId = require('mongojs').ObjectId;
+  var EventEmitter = require('events').EventEmitter;
   
   var db = require('../db');
   var algorithms = require('../algorithms');
@@ -17,8 +18,10 @@
     db.files.findOne({ _id: new ObjectId(fileId.toString()) }, done);
   }
   
+  var apiEvents = new EventEmitter();
+  
   module.exports = {
-    
+      
     fileGet: function (revisionNumber, fileId, done) {
       if (isNaN(revisionNumber)) {
         findFile(fileId, function (err, file) {
@@ -154,6 +157,16 @@
                           if (updateErr) {
                             done(updateErr, 500);
                           } else {
+                            apiEvents.emit("patch", {
+                              fileId: file._id,
+                              revisionNumber: patchRevisionNumber,
+                              patch: patchText,
+                              checksum: checksum,
+                              sessionId: sessionId,
+                              properties: patchProperties,
+                              extensions: patchExtensions
+                            });
+                            
                             done(null, 204);
                           }
                         });
@@ -168,7 +181,7 @@
       });
     },
     
-    fileJoin: function (fileId, userId, clientAlgorithms, protocolVersion, done) {
+    fileJoin: function (fileId, userId, wsHost, wsPort, wssPort, clientAlgorithms, protocolVersion, done) {
       findFile(fileId, function (err, file) {
         if (err) {
           done(err, 500, null);
@@ -208,6 +221,24 @@
                 if (sessionErr) {
                   done(sessionErr, 500, null);
                 } else {
+                  var extensions = {
+                    "x-http-method-override": {}
+                  };
+                  
+                  if (wsHost) {
+                    var webSocketExtension = {};
+                    
+                    if (wsPort) {
+                      webSocketExtension.ws = "ws://" + wsHost + ':' + wsPort + '/' + file._id + '/' + session._id;
+                    }
+                    
+                    if (wssPort) {
+                      webSocketExtension.ws = "wss://" + wsHost + ':' + wssPort + '/' + file._id + '/' + session._id;
+                    }
+                    
+                    extensions.webSocket = webSocketExtension;
+                  }
+                  
                   done(null, 200, {
                     "sessionId": session._id,
                     "algorithm": session.algorithm,
@@ -215,9 +246,7 @@
                     "content": file.content,
                     "contentType": file.contentType,
                     "properties": file.properties,
-                    "extensions": {
-                      "x-http-method-override": {}
-                    }
+                    "extensions": extensions
                   });
                 }
               });
@@ -226,6 +255,20 @@
           }
         }
       });
+    },
+    
+    closeSession: function (sessionId) {
+      apiEvents.emit("sessionClose", {
+        sessionId: sessionId
+      });
+    },
+    
+    on: function (event, listener) {
+      apiEvents.on(event, listener);
+    },
+    
+    removeListener: function (event, listener) {
+      apiEvents.removeListener(event, listener);
     }
     
   };
