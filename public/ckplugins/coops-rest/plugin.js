@@ -150,8 +150,10 @@
         
         this._fileJoin(algorithms, protocolVersion, CKEDITOR.tools.bind(function (status, responseJson, error) {
           if (error) {
-            // TODO: Proper error handling
-            alert('Could not join:' + error);
+            this._editor.fire("CoOPS:Error", {
+              severity: "CRITICAL",
+              message: "Failed to initiate collaboration session: " + error
+            });
           } else {
             this._editor.fire("CoOPS:Joined", responseJson);
           }
@@ -230,8 +232,10 @@
               this._editor.fire("CoOPS:PatchRejected");
             break;
             default:
-              // TODO: Proper error handling
-              alert('Unknown Error');
+              this._editor.fire("CoOPS:Error", {
+                severity: "ERROR",
+                message: "Patching failed on unknown error"
+              });
             break;
           }
           
@@ -252,8 +256,10 @@
               });
             break;
             default:
-              // TODO: Proper error handling
-              alert('Unknown Error');
+              this._editor.fire("CoOPS:Error", {
+                severity: "ERROR",
+                message: "Failed to revert content"
+              });
             break;
           }
           
@@ -297,8 +303,10 @@
           if (status === 200) {
             this._applyPatches(responseJson);
           } else if ((status !== 204) && (status !== 304)) {
-            // TODO: Proper error handling
-            alert(responseText);
+            this._editor.fire("CoOPS:Error", {
+              severity: "WARNING",
+              message: "Failed to synchronize collaborator changes from the server"
+            });
           }
           
           if (callback) {

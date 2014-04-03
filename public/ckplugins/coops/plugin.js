@@ -138,8 +138,10 @@
             }
           });
         } else {
-          // TODO: Proper error handling
-          alert('Could not connect...');
+          this._editor.fire("CoOPS:Error", {
+            severity: "CRITICAL",
+            message: "Could not connect to CoOPS Server"
+          });
         }
       }
     }
