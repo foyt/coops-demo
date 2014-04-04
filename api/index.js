@@ -137,7 +137,7 @@
 
                 algorithm.patch(patchText, file.content, fileProperties, patchProperties, function (err, content, patchProperties) {
                   if (err) {
-                    done(err, 409);
+                    done(err, 500);
                   } else {
                     var checksum = crypto.createHash('md5').update(content).digest('hex');
 
