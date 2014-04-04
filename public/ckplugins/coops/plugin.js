@@ -1,4 +1,6 @@
 (function() {
+  /* global CKEDITOR, CoOps:true */
+  
   var PROTOCOL_VERSION = '1.0.0';
   
   CoOps = CKEDITOR.tools.createClass({
@@ -11,6 +13,7 @@
       this._editor.on('CoOPS:ContentPatch', this._onContentPatch, this);
       this._editor.on('CoOPS:ContentRevert', this._onContentRevert, this);
       this._editor.on('propertiesChange', this._onPropertiesChange, this);
+      this._editor.on('CoOPS:PatchSent', this._onPatchSent, this);
       this._editor.on('CoOPS:PatchAccepted', this._onPatchAccepted, this);
       this._editor.on('CoOPS:PatchMerged', this._onPatchMerged, this);
       this._editor.on('CoOPS:PatchRejected', this._onPatchRejected, this);
@@ -47,6 +50,19 @@
         }
       },
       
+      _resetAndResume: function () {
+        var unsavedContent = this.getUnsavedContent();
+        this._editor.getChangeObserver().reset(unsavedContent);
+        this._editor.getChangeObserver().resume();
+        
+        if (this.isLocallyChanged()) {
+          this._editor.fire("CoOPS:ContentDirty", {
+            unsavedContent: unsavedContent,
+            savedContent: this.getSavedContent()
+          });
+        }
+      },
+      
       _onContentChange: function (event) {
         if (this.isLocallyChanged()) {
           this._editor.fire("CoOPS:ContentDirty", {
@@ -72,37 +88,41 @@
         this._editor.getChangeObserver().pause();
       },
       
+      _onPatchSent: function (event) {
+        this._editor.getChangeObserver().pause();
+      },
+      
       _onPatchAccepted: function (event) {
         if (event.data.content !== undefined) {
           this.setSavedContent(event.data.content);
         }
         
-        var unsavedContent = this.getUnsavedContent();
-        this._editor.getChangeObserver().reset(unsavedContent);
-        this._editor.getChangeObserver().resume();
-        
-        if (this.isLocallyChanged()) {
-          this._editor.fire("CoOPS:ContentDirty", {
-            unsavedContent: unsavedContent,
-            savedContent: this.getSavedContent()
-          });
-        }
+        this._resetAndResume();
       },
       
       _onPatchMerged: function (event) {
         this.setSavedContent(event.data.patched);
-        this._editor.getChangeObserver().reset(event.data.merged);
-        this._editor.getChangeObserver().resume();
+        this._resetAndResume();
       },
       
       _onPatchRejected: function (event) {
-        this._editor.getChangeObserver().resume();
+        CKEDITOR.tools.setTimeout(function() {
+          var unsavedContent = this.getUnsavedContent();
+          this._editor.getChangeObserver().reset(unsavedContent);
+          this._editor.getChangeObserver().resume();
+          
+          if (this.isLocallyChanged()) {
+            this._editor.fire("CoOPS:ContentDirty", {
+              unsavedContent: unsavedContent,
+              savedContent: this.getSavedContent()
+            });
+          }
+        }, 1000, this);
       },
       
       _onContentReverted: function (event) {
         this.setSavedContent(event.data.content);
-        this._editor.getChangeObserver().reset(event.data.content);
-        this._editor.getChangeObserver().resume();
+        this._resetAndResume();
       },
       
       _onPatchApplied: function (event) {
