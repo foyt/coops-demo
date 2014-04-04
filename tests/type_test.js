@@ -63,6 +63,8 @@
       // Update ck2
       driver.findElement(webdriver.By.css('#ck2 .ck-action-update')).click();
       
+      driver.sleep(2000);
+
       // Both editors and server should contain text <p>a</p>
       utils.getCKData(driver, ck1Frame, function (data) {
         assert.equal(utils.removeLineBreaks(data), '<p>abc</p>');
