@@ -114,26 +114,31 @@
     
     var fileId = urlParts[2];
     if (!fileId) {
+      console.log("Failed to open WebSocket: FileId not found");
       webSocket.close(1000, "Not found");
       return;
     }
     
     var sessionId = urlParts[3];
     if (!sessionId) {
+      console.log("Failed to open WebSocket: SessionId not found");
       webSocket.close(1000, "Not found");
       return;
     }
     
     db.files.findOne({ _id: new ObjectId( fileId ) }, function (err, file) {
       if (err) {
+        console.log("Failed to open WebSocket: File error: " + err);
         webSocket.close(1011, err);
       } else {
         if (file) {
           db.sessions.findOne({ _id: new ObjectId( sessionId ) }, function (sessionErr, session) {
             if (sessionErr) {
+              console.log("Failed to open WebSocket: Session error: " + sessionErr);
               webSocket.close(1011, sessionErr);
             } else {
               if (!session) {
+                console.log("Failed to open WebSocket: Session not found");
                 webSocket.close(1000, "Not found");
               } else {
                 var client = new Client(webSocket, session._id.toString(), file._id.toString());
@@ -142,6 +147,7 @@
             }
           });
         } else {
+          console.log("Failed to open WebSocket: File not found");
           webSocket.close(1000, "Not found");
         }
       }
