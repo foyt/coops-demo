@@ -48,8 +48,10 @@
           this._lastSaved = this._lastDispatched;
         }
         
-        this._checkSelection();
-        this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
+        CKEDITOR.tools.setTimeout(function() {
+          this._checkSelection();
+          this._dispatchSelectionChanges(this._createDispatchableSelection(this._editor.getSelection()));
+        }, 2000, this);
       },
       
       _onPatchReceived: function (event) {
