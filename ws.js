@@ -108,17 +108,17 @@
   function onWebSocketServerConnection(webSocket) {
     var url = webSocket.upgradeReq.url;
     var urlParts = url.split('/');
-    if (urlParts.length < 3) {
+    if (urlParts.length < 4) {
       return;
     }
     
-    var fileId = urlParts[1];
+    var fileId = urlParts[2];
     if (!fileId) {
       webSocket.close(1000, "Not found");
       return;
     }
     
-    var sessionId = urlParts[2];
+    var sessionId = urlParts[3];
     if (!sessionId) {
       webSocket.close(1000, "Not found");
       return;

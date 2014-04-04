@@ -229,11 +229,11 @@
                     var webSocketExtension = {};
                     
                     if (wsPort) {
-                      webSocketExtension.ws = "ws://" + wsHost + ':' + wsPort + '/' + file._id + '/' + session._id;
+                      webSocketExtension.ws = "ws://" + wsHost + ':' + wsPort + '/ws/' + file._id + '/' + session._id;
                     }
                     
                     if (wssPort) {
-                      webSocketExtension.ws = "wss://" + wsHost + ':' + wssPort + '/' + file._id + '/' + session._id;
+                      webSocketExtension.ws = "wss://" + wsHost + ':' + wssPort + '/ws/' + file._id + '/' + session._id;
                     }
                     
                     extensions.webSocket = webSocketExtension;
