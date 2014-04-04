@@ -7,6 +7,7 @@
     $: function(editor) {
       this._editor = editor;
       this._savedContent = null;
+      this._rnrTimeout = null;
       
       this._editor.on('contentChange', this._onContentChange, this);
       this._editor.on('CoOPS:SessionStart', this._onSessionStart, this);
@@ -50,17 +51,26 @@
         }
       },
       
-      _resetAndResume: function () {
-        var unsavedContent = this.getUnsavedContent();
-        this._editor.getChangeObserver().reset(unsavedContent);
-        this._editor.getChangeObserver().resume();
-        
-        if (this.isLocallyChanged()) {
-          this._editor.fire("CoOPS:ContentDirty", {
-            unsavedContent: unsavedContent,
-            savedContent: this.getSavedContent()
-          });
+      _resetAndResume: function (timeout) {
+        if (this._rnrTimeout) {
+          clearTimeout(this._rnrTimeout);
+          this._rnrTimeout = null;
         }
+        
+        this._rnrTimeout = CKEDITOR.tools.setTimeout(function() {
+          var unsavedContent = this.getUnsavedContent();
+          this._editor.getChangeObserver().reset(unsavedContent);
+          this._editor.getChangeObserver().resume();
+          
+          if (this.isLocallyChanged()) {
+            this._editor.fire("CoOPS:ContentDirty", {
+              unsavedContent: unsavedContent,
+              savedContent: this.getSavedContent()
+            });
+          }
+          
+          this._rnrTimeout = null;
+        }, timeout||0, this);
       },
       
       _onContentChange: function (event) {
@@ -96,8 +106,7 @@
         if (event.data.content !== undefined) {
           this.setSavedContent(event.data.content);
         }
-        
-        this._resetAndResume();
+        this._resetAndResume(100);
       },
       
       _onPatchMerged: function (event) {
@@ -106,18 +115,7 @@
       },
       
       _onPatchRejected: function (event) {
-        CKEDITOR.tools.setTimeout(function() {
-          var unsavedContent = this.getUnsavedContent();
-          this._editor.getChangeObserver().reset(unsavedContent);
-          this._editor.getChangeObserver().resume();
-          
-          if (this.isLocallyChanged()) {
-            this._editor.fire("CoOPS:ContentDirty", {
-              unsavedContent: unsavedContent,
-              savedContent: this.getSavedContent()
-            });
-          }
-        }, 1000, this);
+        this._resetAndResume(1000);
       },
       
       _onContentReverted: function (event) {
