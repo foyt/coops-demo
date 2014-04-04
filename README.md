@@ -1,7 +1,7 @@
 Up to date documentation
 ========================
 
-[Documentation](http://github.com/foyt/coops-demo-node/)
+[Documentation](http://github.com/foyt/coops-demo/)
 
 Introduction
 ============
