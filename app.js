@@ -46,7 +46,7 @@
     app.use(express.cookieParser());
     app.use(express.bodyParser({limit: '50mb'}));
     app.use(express.methodOverride());
-    app.use(express.session({ secret: settings.sessionSecret }));
+    app.use(express.cookieSession({ secret: settings.sessionSecret }));
     app.use(passport.initialize());
     app.use(passport.session());
     app.use(app.router);
