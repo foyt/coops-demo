@@ -38,21 +38,25 @@
       value: function (data) {
         api.filePatch(this._fileId, data, function (err, code) {
           if (err) {
-            this._webSocket.send(JSON.stringify({
-              type: 'patchError',
-              data: {
-                code: code,
-                message: err
-              }
-            }));
-          } else {
-            if (code !== 204) {
-              this._webSocket.send(JSON.stringify({
-                type: 'patchRejected',
-                data: {
-                  code: code
-                }
-              }));
+            switch (code) {
+              case 409:
+                this._webSocket.send(JSON.stringify({
+                  type: 'patchRejected',
+                  data: {
+                    code: code,
+                    message: err
+                  }
+                }));
+              break;
+              default:
+                this._webSocket.send(JSON.stringify({
+                  type: 'patchError',
+                  data: {
+                    code: code,
+                    message: err
+                  }
+                }));
+              break;
             }
           }
         }.bind(this));
