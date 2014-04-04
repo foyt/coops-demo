@@ -1,6 +1,6 @@
 (function() {
 
-  /* global CKEDITOR, ActiveXObject, MozWebSocket, DefaultIOHandler: true, RestConnector:true */
+  /* global CKEDITOR, ActiveXObject, MozWebSocket, DefaultIOHandler: true, DefaultConnector:true */
   
   DefaultIOHandler = CKEDITOR.tools.createClass({
     $: function(editor) {
@@ -129,7 +129,7 @@
     }
   });
 
-  RestConnector = CKEDITOR.tools.createClass({
+  DefaultConnector = CKEDITOR.tools.createClass({
     $ : function(editor) {
       this._editor = editor;
       this._useWebSocket = false;
@@ -141,7 +141,7 @@
     },
     proto : {
       getName: function () {
-        return 'rest';
+        return 'default-connector';
       },
       
       _onCoOpsJoin: function (event) {
@@ -479,12 +479,12 @@
     }
   });
   
-  CKEDITOR.plugins.add('coops-rest', {
+  CKEDITOR.plugins.add('coops-connector', {
     requires : [ 'coops' ],
     init : function(editorInstance) {
       
       editorInstance.on('CoOPS:BeforeJoin', function(event) {
-        event.data.addConnector(new RestConnector(event.editor));
+        event.data.addConnector(new DefaultConnector(event.editor));
       });
 
     }

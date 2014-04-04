@@ -24,7 +24,7 @@
   CKEDITOR.plugins.addExternal('change', '/ckplugins/change/');
   CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
   CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
-  CKEDITOR.plugins.addExternal('coops-rest', '/ckplugins/coops-rest/');
+  CKEDITOR.plugins.addExternal('coops-connector', '/ckplugins/coops-connector/');
   CKEDITOR.plugins.addExternal('coops-cursors', '/ckplugins/coops-cursors/');
   
   MockIOHandler = CKEDITOR.tools.createClass({
@@ -52,7 +52,7 @@
 
       var plugins = $.url().param('plugins');
       if (!plugins) {
-        plugins = 'coops,coops-dmp,coops-rest';
+        plugins = 'coops,coops-dmp,coops-connector';
       }
       
       var polling = $.url().param('poll') || 'manual';

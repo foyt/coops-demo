@@ -10,14 +10,14 @@
   
     CKEDITOR.plugins.addExternal('change', '/ckplugins/change/');
     CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
-    CKEDITOR.plugins.addExternal('coops-rest', '/ckplugins/coops-rest/');
+    CKEDITOR.plugins.addExternal('coops-connector', '/ckplugins/coops-connector/');
     CKEDITOR.plugins.addExternal('coops-cursors', '/ckplugins/coops-cursors/');
     CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
     CKEDITOR.plugins.addExternal('mrmonkey', '/ckplugins/mrmonkey/');
     
     var editor = CKEDITOR.appendTo( 'ckcontainer', {
       skin: 'moono',
-      extraPlugins: 'coops,coops-rest,coops-dmp,coops-cursors,mrmonkey',
+      extraPlugins: 'coops,coops-connector,coops-dmp,coops-cursors,mrmonkey',
       readOnly: true,
       height: 500,
       coops: {
