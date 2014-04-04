@@ -1,6 +1,6 @@
 (function() {
 
-  /* global CKEDITOR, ActiveXObject, DefaultIOHandler: true, RestConnector:true */
+  /* global CKEDITOR, ActiveXObject, MozWebSocket, DefaultIOHandler: true, RestConnector:true */
   
   DefaultIOHandler = CKEDITOR.tools.createClass({
     $: function(editor) {
@@ -132,6 +132,7 @@
   RestConnector = CKEDITOR.tools.createClass({
     $ : function(editor) {
       this._editor = editor;
+      this._useWebSocket = false;
       this._patchData = {};
       this._ioHandler = editor.config.coops.restIOHandler||new DefaultIOHandler(editor);
       
@@ -166,80 +167,107 @@
           
           this._revisionNumber = joinData.revisionNumber;
           this._sessionId = joinData.sessionId;
-
-          this._editor.on("CoOPS:ContentPatch", this._onContentPatch, this);
-          this._editor.on("CoOPS:ContentRevert", this._onContentRevert, this);
-          this._editor.on("propertiesChange", this._onPropertiesChange, this);
-          this._editor.on("CoOPS:ExtensionPatch", this._onExtensionPatch, this);
-
-          if (this._editor.config.coops.restPolling !== 'manual') {
-            this._startUpdatePolling();
-          } else {
-            this._editor.restCheckUpdates = CKEDITOR.tools.bind(function () {
-              this._checkUpdates();
-            }, this);
+          this._useWebSocket = false;
+          
+          if (this._editor.config.coops.webSocket !== false) {
+            if (joinData.extensions.webSocket) {
+              var secure = window.location.protocol.indexOf('https') === 0;
+              var webSocketUrl = secure ? joinData.extensions.webSocket.wss : joinData.extensions.webSocket.ws;
+              if (webSocketUrl) {
+                if ((typeof window.WebSocket) !== 'undefined') {
+                  this._webSocket = new WebSocket(webSocketUrl);
+                } else if ((typeof window.MozWebSocket) !== 'undefined') {
+                  this._webSocket = new MozWebSocket(webSocketUrl);
+                }
+                
+                if (this._webSocket) {
+                  this._webSocket.onmessage = CKEDITOR.tools.bind(this._onWebSocketMessage, this);
+                  this._webSocket.onclose = CKEDITOR.tools.bind(this._onWebSocketClose, this);
+                  switch (this._webSocket.readyState) {
+                    case 0:
+                      this._webSocket.onopen = CKEDITOR.tools.bind(this._onWebSocketOpen, this);
+                    break;
+                    case 1:
+                      this._startListening();
+                    break;
+                    default:
+                      this._editor.fire("CoOPS:Error", {
+                        severity: "CRITICAL",
+                        message: "WebSocket initialization failed."
+                      });
+                    break;
+                  }
+                  
+                  this._useWebSocket = true;
+                }
+              }
+            }
+          }
+          
+          if (!this._useWebSocket) {
+            this._startListening();
+  
+            if (this._editor.config.coops.restPolling !== 'manual') {
+              this._startUpdatePolling();
+            } else {
+              this._editor.restCheckUpdates = CKEDITOR.tools.bind(function () {
+                this._checkUpdates();
+              }, this);
+            }
           }
           
           event.data.markConnected();
         }
       },
-
+      
       _onContentPatch : function(event) {
-        var patch = event.data.patch;
-        var newContent = event.data.newContent;
-        this._sendPatch(patch, null, null, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
-          this._patchData[patchRevision] = {
-            content: newContent
+        if (this._patchData[this._revisionNumber + 1]) {
+          this._editor.fire("CoOPS:PatchRejected", {
+            reason: "already sending a patch"
+          });
+        } else {
+          var patch = event.data.patch;
+          this._patchData[this._revisionNumber + 1] = {
+            content: event.data.newContent
           };
-        }, this));
+         
+          this._sendPatch(patch, null, null);
+        }
       },
       
       _onPropertiesChange: function (event) {
-        var changedProperties = event.data.properties;
-        var properties = {};
-        
-        for (var i = 0, l = changedProperties.length; i < l; i++) {
-          properties[changedProperties[i].property] = changedProperties[i].currentValue;
-        }
-        
-        this._sendPatch(null, properties, null, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
-          this._patchData[patchRevision] = {
+        if (this._patchData[this._revisionNumber + 1]) {
+          this._editor.fire("CoOPS:PatchRejected", {
+            reason: "already sending a patch"
+          });
+        } else {
+          var changedProperties = event.data.properties;
+          var properties = {};
+          
+          for (var i = 0, l = changedProperties.length; i < l; i++) {
+            properties[changedProperties[i].property] = changedProperties[i].currentValue;
+          }
+          
+          this._patchData[this._revisionNumber + 1] = {
             properties: properties
           };
-        }, this));
+          
+          this._sendPatch(null, properties, null);
+        }
       },
       
       _onExtensionPatch: function (event) {
-        this._sendPatch(null, null, event.data.extensions, CKEDITOR.tools.bind(function (patch, patchRevision, properties, extensions) {
-          this._patchData[patchRevision] = {
-            extensions: extensions
+        if (this._patchData[this._revisionNumber + 1]) {
+          this._editor.fire("CoOPS:PatchRejected", {
+            reason: "already sending a patch"
+          });
+        } else {
+          this._patchData[this._revisionNumber + 1] = {
+            extensions: event.data.extensions
           };
-        }, this));
-      },
-
-      _sendPatch: function (patch, properties, extensions, onSuccess) {
-        var patchRevision = this._revisionNumber + 1;
-        this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, properties: properties, extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-          switch (status) {
-            case 204:
-              // Request was ok
-              if (onSuccess) {
-                onSuccess(patch, patchRevision, properties, extensions);
-              }
-              this._editor.fire("CoOPS:PatchSent");
-            break;
-            case 409:
-              this._editor.fire("CoOPS:PatchRejected");
-            break;
-            default:
-              this._editor.fire("CoOPS:Error", {
-                severity: "ERROR",
-                message: "Patching failed on unknown error"
-              });
-            break;
-          }
-          
-        }, this));
+            
+          this._sendPatch(null, null, event.data.extensions);
+        }
       },
       
       _onContentRevert: function(event) {
@@ -257,7 +285,7 @@
             break;
             default:
               this._editor.fire("CoOPS:Error", {
-                severity: "ERROR",
+                severity: "SEVERE",
                 message: "Failed to revert content"
               });
             break;
@@ -266,14 +294,97 @@
         }, this));
       },
       
+      _onWebSocketOpen: function (event) {
+        this._startListening();
+      },
+      
+      _onWebSocketClose: function (event) {
+        this._editor.fire("CoOPS:Error", {
+          severity: "SEVERE",
+          message: "WebSocket closed unexpectedly"
+        });
+      },
+      
+      _onWebSocketMessage: function (event) {
+        var message = JSON.parse(event.data);
+        if (message && message.type) {
+          switch (message.type) {
+            case 'update':
+              if (message.data) {
+                this._applyPatch(message.data);
+              }
+            break;
+            case 'patchRejected':
+              this._editor.fire("CoOPS:PatchRejected", {
+                reason: message.data.message
+              });
+            break;
+            case 'patchError':
+              this._editor.fire("CoOPS:Error", {
+                severity: "SEVERE",
+                message: "Received a patch error: " + message.data.message
+              });
+            break;
+            default:
+              this._editor.fire("CoOPS:Error", {
+                severity: "CRITICAL",
+                message: "Unknown WebSocket message " + message.type + ' received'
+              });
+            break;
+          }
+        } else {
+          this._editor.fire("CoOPS:Error", {
+            severity: "WARNING",
+            message: "Invalid WebSocket message received"
+          });
+        }
+      },
+      
+      _startListening: function () {
+        this._editor.on("CoOPS:ContentPatch", this._onContentPatch, this);
+        this._editor.on("CoOPS:ContentRevert", this._onContentRevert, this);
+        this._editor.on("propertiesChange", this._onPropertiesChange, this);
+        this._editor.on("CoOPS:ExtensionPatch", this._onExtensionPatch, this);
+      },
+
+      _sendPatch: function (patch, properties, extensions) {
+        if (this._useWebSocket) {
+          this._webSocket.send(JSON.stringify({
+            type: 'patch',
+            data: { patch: patch, properties: properties, extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId }
+          }));
+        } else {
+          this._ioHandler.patch(this._editor.config.coops.serverUrl, { patch: patch, properties: properties, extensions: extensions, revisionNumber : this._revisionNumber, sessionId: this._sessionId  }, CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+            switch (status) {
+              case 204:
+              break;
+              case 409:
+                this._editor.fire("CoOPS:PatchRejected", {
+                  reason: "Patch rejected"
+                });
+              break;
+              default:
+                this._editor.fire("CoOPS:Error", {
+                  severity: "SEVERE",
+                  message: "Patching failed on unknown error"
+                });
+              break;
+            }
+            
+          }, this));
+        }
+        
+        this._editor.fire("CoOPS:PatchSent");
+      },
+      
       _fileJoin: function (algorithms, protocolVersion, callback) {
-        var parameters = new Array();
+        var parameters = [];
         for (var i = 0, l = algorithms.length; i < l; i++) {
           parameters.push({
             name: 'algorithm',
             value: algorithms[i]
           });
-        };
+        }
         
         parameters.push({
           name: 'protocolVersion',
@@ -342,7 +453,9 @@
             properties: patch.properties,
             extensions: patch.extensions,
           })) {
-            callback();
+            if (callback) {
+              callback();
+            }
           }
         } else {
           // Our patch was accepted, yay!
@@ -355,7 +468,12 @@
             properties: patchData.properties,
             extensions: patchData.extensions
           });
+          
           delete this._patchData[this._revisionNumber];
+          
+          if (callback) {
+            callback();
+          }
         }
       }
     }
