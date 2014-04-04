@@ -5,6 +5,7 @@
   var ObjectId = require('mongojs').ObjectId;
   var EventEmitter = require('events').EventEmitter;
   
+  var settings = require('../settings.json');
   var db = require('../db');
   var algorithms = require('../algorithms');
   
@@ -181,7 +182,7 @@
       });
     },
     
-    fileJoin: function (fileId, userId, wsHost, wsPort, wssPort, clientAlgorithms, protocolVersion, done) {
+    fileJoin: function (fileId, userId, clientAlgorithms, protocolVersion, done) {
       findFile(fileId, function (err, file) {
         if (err) {
           done(err, 500, null);
@@ -225,15 +226,15 @@
                     "x-http-method-override": {}
                   };
                   
-                  if (wsHost) {
+                  if (settings.ws || settings.wss) {
                     var webSocketExtension = {};
                     
-                    if (wsPort) {
-                      webSocketExtension.ws = "ws://" + wsHost + ':' + wsPort + '/ws/' + file._id + '/' + session._id;
+                    if (settings.ws && settings.ws.host && settings.ws.port) {
+                      webSocketExtension.ws = "ws://" + settings.ws.host + ':' + settings.ws.port + '/ws/' + file._id + '/' + session._id;
                     }
                     
-                    if (wssPort) {
-                      webSocketExtension.ws = "wss://" + wsHost + ':' + wssPort + '/ws/' + file._id + '/' + session._id;
+                    if (settings.wss && settings.wss.host && settings.wss.port) {
+                      webSocketExtension.wss = "wss://" + settings.wss.host + ':' + settings.wss.port + '/ws/' + file._id + '/' + session._id;
                     }
                     
                     extensions.webSocket = webSocketExtension;
