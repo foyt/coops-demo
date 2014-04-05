@@ -14,10 +14,15 @@
       var element = $('<div>').addClass('notification').text(message).click($.proxy(this._onNotificationClick, this));
       element.addClass('notification-' + status);
       $(this.element).find('.notifications-container').append(element);
+      return element;
+    },
+    
+    hideNotification: function (element) {
+      $(element).hide('blind');
     },
     
     _onNotificationClick: function (event) {
-      $(event.target).hide('blind');
+      this.hideNotification(event.target);
     },
     
     _destroy : function() {
