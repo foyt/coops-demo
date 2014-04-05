@@ -44,17 +44,18 @@
     });
 
     editor.on("CoOPS:ConnectionLost", function (event) {
-      var connectionLostMessage = $('.notifications').notifications('notification', 'load', event.data.message);
-      connectionLostMessage.addClass('connection-lost-message');
+      $('.notifications').notifications('notification', 'load', event.data.message).addClass('connection-lost-notification');
     });
 
     editor.on("CoOPS:Reconnect", function (event) {
-      $('.notifications').notifications('hideMessage', $('.notifications').find('.connection-lost-message'));
+      $('.notifications').find('.connection-lost-notification').notification("hide");
     });
     
     // CoOPS Errors
     
     editor.on("CoOPS:Error", function (event) {
+      $('.notifications').find('.connection-lost-notification').notification("hide");
+      
       switch (event.data.severity) {
         case 'CRITICAL':
         case 'SEVERE':
