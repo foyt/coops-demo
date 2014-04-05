@@ -318,7 +318,23 @@
             }
           }, this._editor.config.coops.reconnectTime||3000, this);
         } else {
-          // TODO: Implement REST recovery...
+          CKEDITOR.tools.setTimeout(function () {
+            this._ioHandler.get(this._editor.config.coops.serverUrl + '/update', [{ name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+              if ((status === 200) || (status === 204)) {
+                this._startUpdatePolling();
+                this._editor.fire("CoOPS:Reconnect");
+              } else {
+                if (attemptsLeft <= 0) {
+                  this._editor.fire("CoOPS:Error", {
+                    severity: "CRITICAL",
+                    message: "Could not reconnect to server. Please try again later"
+                  });
+                } else {
+                  this._tryReconnect(attemptsLeft - 1);
+                }
+              }
+            }, this));
+          }, this._editor.config.coops.reconnectTime||3000, this);
         }
       },
       
@@ -454,17 +470,26 @@
       _checkUpdates: function (callback) {
         var url = this._editor.config.coops.serverUrl + '/update';
         this._ioHandler.get(url, [{ name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
-          if (status === 200) {
-            this._applyPatches(responseJson);
-          } else if ((status !== 204) && (status !== 304)) {
-            this._editor.fire("CoOPS:Error", {
-              severity: "WARNING",
-              message: "Failed to synchronize collaborator changes from the server"
-            });
-          }
-          
-          if (callback) {
-            callback();
+          if (status === 0) {
+            this._stopUpdatePolling();
+            if (!this._leavingPage) {
+              this._editor.fire("CoOPS:ConnectionLost", {
+                message: "Lost connection to server, trying to reconnect..."
+              });
+            }
+          } else {
+            if (status === 200) {
+              this._applyPatches(responseJson);
+            } else if ((status !== 204) && (status !== 304)) {
+              this._editor.fire("CoOPS:Error", {
+                severity: "WARNING",
+                message: "Failed to synchronize collaborator changes from the server"
+              });
+            }
+            
+            if (callback) {
+              callback();
+            }
           }
         }, this));
       },
