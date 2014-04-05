@@ -12,6 +12,7 @@
   var rest = require('./rest');
   var patterns = require('./patterns.js');
   var ws = require('./ws');
+  var db = require('./db');
 
   var app = express();
   var httpServer = null;
@@ -141,5 +142,6 @@
   });
 
   ws.configure(httpServer, httpsServer);
+  db.sessions.remove();
   
 }).call(this);
