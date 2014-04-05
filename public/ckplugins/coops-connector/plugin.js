@@ -299,9 +299,8 @@
       },
       
       _onWebSocketClose: function (event) {
-        this._editor.fire("CoOPS:Error", {
-          severity: "SEVERE",
-          message: "WebSocket closed unexpectedly"
+        this._editor.fire("CoOPS:ConnectionLost", {
+          message: "Lost connection to server, trying to reconnect..."
         });
       },
       
