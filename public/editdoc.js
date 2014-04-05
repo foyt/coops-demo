@@ -94,6 +94,8 @@
         });
       }
     });
+    
+    $('.collaborators').collaborators();
   });
   
 }).call(this);

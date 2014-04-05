@@ -5,6 +5,7 @@ block head
   script(type="text/javascript",src="//cdnjs.cloudflare.com/ajax/libs/diff_match_patch/20121119/diff_match_patch.js")
   script(type="text/javascript",src="//cdn.jsdelivr.net/jshash/2.2/md5-min.js")
   script(type="text/javascript",src="/scripts/diffxml-js/diffxml-js.js")
+  script(type="text/javascript",src="/scripts/collaborators.js")
   script(type="text/javascript",src="/editdoc.js")
 block header
   div(class="index-container")
@@ -26,3 +27,4 @@ block content
     div(id="title-container")
       input(type="text", name="name", value="#{file.properties.title}")
     div(id="ckcontainer")
+  div(class="collaborators")

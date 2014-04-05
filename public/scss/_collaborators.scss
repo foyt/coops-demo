@@ -1,0 +1,24 @@
+.collaborators {
+  position: absolute;
+  top: 70px;
+  right: 4px;
+  width: 500px;
+  overflow-y: scroll;
+  height: 42px;
+}
+
+.collaborator {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid #ccc;
+  padding: 4px;
+  border-radius: 8px;
+  float: right;
+  margin-left: 4px;
+  margin-bottom: 4px;
+}
+
+.collaborators img {
+  width: 32px;
+  border-radius: 8px;
+  vertical-align: top;
+}
