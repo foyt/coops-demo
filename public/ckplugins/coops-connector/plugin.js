@@ -132,6 +132,7 @@
   DefaultConnector = CKEDITOR.tools.createClass({
     $ : function(editor) {
       this._editor = editor;
+      this._leavingPage = false;
       this._useWebSocket = false;
       this._patchData = {};
       this._ioHandler = editor.config.coops.restIOHandler||new DefaultIOHandler(editor);
@@ -216,6 +217,8 @@
             }
           }
           
+          window.onbeforeunload = CKEDITOR.tools.bind(this._onWindowBeforeUnload, this);
+          
           event.data.markConnected();
         }
       },
@@ -294,14 +297,20 @@
         }, this));
       },
       
+      _onWindowBeforeUnload: function (event) {
+        this._leavingPage = true;
+      },
+      
       _onWebSocketOpen: function (event) {
         this._startListening();
       },
       
       _onWebSocketClose: function (event) {
-        this._editor.fire("CoOPS:ConnectionLost", {
-          message: "Lost connection to server, trying to reconnect..."
-        });
+        if (!this._leavingPage) {
+          this._editor.fire("CoOPS:ConnectionLost", {
+            message: "Lost connection to server, trying to reconnect..."
+          });
+        }
       },
       
       _onWebSocketMessage: function (event) {
