@@ -175,20 +175,15 @@
               var secure = window.location.protocol.indexOf('https') === 0;
               var webSocketUrl = secure ? joinData.extensions.webSocket.wss : joinData.extensions.webSocket.ws;
               if (webSocketUrl) {
-                if ((typeof window.WebSocket) !== 'undefined') {
-                  this._webSocket = new WebSocket(webSocketUrl);
-                } else if ((typeof window.MozWebSocket) !== 'undefined') {
-                  this._webSocket = new MozWebSocket(webSocketUrl);
-                }
-                
+                this._webSocket = this._openWebSocket(webSocketUrl);
                 if (this._webSocket) {
                   this._webSocket.onmessage = CKEDITOR.tools.bind(this._onWebSocketMessage, this);
                   this._webSocket.onclose = CKEDITOR.tools.bind(this._onWebSocketClose, this);
                   switch (this._webSocket.readyState) {
-                    case 0:
+                    case this._webSocket.CONNECTING:
                       this._webSocket.onopen = CKEDITOR.tools.bind(this._onWebSocketOpen, this);
                     break;
-                    case 1:
+                    case this._webSocket.OPEN:
                       this._startListening();
                     break;
                     default:
@@ -218,6 +213,7 @@
           }
           
           window.onbeforeunload = CKEDITOR.tools.bind(this._onWindowBeforeUnload, this);
+          this._editor.on("CoOPS:ConnectionLost", this._onConnectionLost, this);
           
           event.data.markConnected();
         }
@@ -301,6 +297,35 @@
         this._leavingPage = true;
       },
       
+      _tryReconnect: function (attemptsLeft) {
+        if (this._useWebSocket) {
+          this._webSocket = this._openWebSocket(this._webSocket.url);
+          
+          CKEDITOR.tools.setTimeout(function () {
+            if (this._webSocket.readyState === this._webSocket.OPEN) {
+              this._webSocket.onmessage = CKEDITOR.tools.bind(this._onWebSocketMessage, this);
+              this._webSocket.onclose = CKEDITOR.tools.bind(this._onWebSocketClose, this);
+              this._editor.fire("CoOPS:Reconnect");
+            } else {
+              if (attemptsLeft <= 0) {
+                this._editor.fire("CoOPS:Error", {
+                  severity: "CRITICAL",
+                  message: "Could not reconnect to server. Please try again later"
+                });
+              } else {
+                this._tryReconnect(attemptsLeft - 1);
+              }
+            }
+          }, this._editor.config.coops.reconnectTime||3000, this);
+        } else {
+          // TODO: Implement REST recovery...
+        }
+      },
+      
+      _onConnectionLost: function (event) {
+        this._tryReconnect((this._editor.config.coops.maxReconnections||3) - 1);
+      },
+      
       _onWebSocketOpen: function (event) {
         this._startListening();
       },
@@ -346,6 +371,16 @@
             message: "Invalid WebSocket message received"
           });
         }
+      },
+      
+      _openWebSocket: function (url) {
+        if ((typeof window.WebSocket) !== 'undefined') {
+          return new WebSocket(url);
+        } else if ((typeof window.MozWebSocket) !== 'undefined') {
+          return new MozWebSocket(url);
+        }
+        
+        return null;
       },
       
       _startListening: function () {
