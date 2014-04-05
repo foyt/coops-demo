@@ -363,6 +363,7 @@
   
   api.on("sessionClose", function (data) {
     sendSessionEventsPatch(data.fileId, data.sessionId, "CLOSE");
+    db.sessions.remove({ _id: new ObjectId( data.sessionId.toString()) });
   });
   
   module.exports = api;
