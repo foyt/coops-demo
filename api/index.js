@@ -20,8 +20,7 @@
   }
   
   var apiEvents = new EventEmitter();
-  
-  module.exports = {
+  var api = {
       
     fileGet: function (revisionNumber, fileId, done) {
       if (isNaN(revisionNumber)) {
@@ -240,8 +239,16 @@
                     extensions.webSocket = webSocketExtension;
                   }
                   
+                  apiEvents.emit("sessionOpen", {
+                    "sessionId": session._id.toString(),
+                    "userId": userId,
+                    "fileId": fileId,
+                    "algorithm": session.algorithm,
+                    "revisionNumber": parseInt(file.revisionNumber, 10)
+                  });
+                  
                   done(null, 200, {
-                    "sessionId": session._id,
+                    "sessionId": session._id.toString(),
                     "algorithm": session.algorithm,
                     "revisionNumber": parseInt(file.revisionNumber, 10),
                     "content": file.content,
@@ -258,8 +265,9 @@
       });
     },
     
-    closeSession: function (sessionId) {
+    closeSession: function (fileId, sessionId) {
       apiEvents.emit("sessionClose", {
+        fileId: fileId,
         sessionId: sessionId
       });
     },
@@ -271,7 +279,92 @@
     removeListener: function (event, listener) {
       apiEvents.removeListener(event, listener);
     }
-    
   };
+  
+  function getUserInfo(session, status, done) {
+    if (session.userId) {
+      db.users.findOne({_id: new ObjectId(session.userId.toString()) }, function(userErr, user) {
+        if (userErr) {
+          done("Error occurred while trying to find a session user: " + userErr, null);
+        } else {
+          if (user) {
+            db.useremails.findOne({ userId: new ObjectId(user._id.toString()) }, function(userEmailErr, userEmail) {
+              if (userEmailErr) {
+                done("Error occurred while trying to find a session user email: " + userEmailErr, null);
+              } else {
+                if (userEmail) {
+                  done(null, {
+                    status: status,
+                    displayName: user.displayName||'Anonymous',
+                    email: userEmail.address
+                  });
+                } else {
+                  done(null, {
+                    status: status,
+                    displayName: user.displayName||'Anonymous'
+                  });
+                }
+              }
+            });
+          } else {
+            done(null, {
+              status: status,
+              displayName: 'Anonymous'
+            });
+          }
+        }
+      });
+    } else {
+      done(null, {
+        status: status,
+        displayName: 'Anonymous'
+      });
+    }
+  }
+  
+  function sendSessionEventsPatch(fileId, sessionId, status) {
+    db.sessions.findOne({ _id: new ObjectId( sessionId.toString() ) }, function (sessionErr, session) {
+      if (sessionErr) {
+        console.log("Error occurred while trying to find a session: " + sessionErr);
+      } else {
+        if (session) {
+          findFile(fileId, function (err, file) {
+            if (err) {
+              console.log("Error occurred while trying to find a session file: " + err);
+            } else {
+              if (file) {
+                getUserInfo(session, status, function (err, info) {
+                  var users = {};
+                  users[session._id.toString()] = info;
+                  api.filePatch(file._id, {
+                    sessionId: session._id.toString(),
+                    revisionNumber: file.revisionNumber,
+                    extensions: {
+                      "sessionEvents": [info]
+                    }
+                  }, function (err, code, file) {});
+                });
+                
+              } else {
+                console.log("Could not find a session file");
+              }
+            }
+          });
+        } else {
+          console.log("Could not find a session");
+        }
+      }
+    });
+  }
+
+  api.on("sessionOpen", function (data) {
+    sendSessionEventsPatch(data.fileId, data.sessionId, "OPEN");
+  });
+  
+  api.on("sessionClose", function (data) {
+    sendSessionEventsPatch(data.fileId, data.sessionId, "CLOSE");
+  });
+  
+  module.exports = api;
   
 }).call(this);

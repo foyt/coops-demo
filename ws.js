@@ -99,7 +99,7 @@
     
     _onWebSocketClose: {
       value: function () {
-        api.closeSession(this._sessionId);
+        api.closeSession(this._fileId, this._sessionId);
         api.removeListener("patch", this._apiPatchListener);
       }
     }
