@@ -48,7 +48,7 @@
         clientAlgorithms = [clientAlgorithms];
       }
       
-      api.fileJoin(req.params.fileid, req.user.id, clientAlgorithms, req.query.protocolVersion, function (err, code, join) {
+      api.fileJoin(req.params.fileid, req.user._id.toString(), clientAlgorithms, req.query.protocolVersion, function (err, code, join) {
         if (err) {
           res.send(code, err);
         } else {
