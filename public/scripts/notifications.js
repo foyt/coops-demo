@@ -11,24 +11,39 @@
     },
     
     notification: function (status, message) {
-      var element = $('<div>').addClass('notification').text(message).click($.proxy(this._onNotificationClick, this));
-      element.addClass('notification-' + status);
+      var element = $('<div>').notification({
+        status: status,
+        text: message
+      }).click($.proxy(this._onNotificationClick, this));
+      
       $(this.element).find('.notifications-container').append(element);
       return element;
     },
     
-    hideNotification: function (element) {
-      $(element).hide('blind');
-    },
-    
     _onNotificationClick: function (event) {
-      this.hideNotification(event.target);
+      $(event.target).notification("hide");
     },
     
     _destroy : function() {
       
     }
+  });
+  
+  $.widget("custom.notification", {
+    _create: function () {
+      $(this.element)
+        .addClass('notification')
+        .addClass('notification-' + this.options.status)
+        .text(this.options.text);
+    },
     
+    hide: function () {
+      this.element.hide('blind');
+    },
+    
+    _destroy : function() {
+      
+    }
   });
   
   $(document).ready(function() {
