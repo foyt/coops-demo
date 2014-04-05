@@ -42,6 +42,15 @@
     editor.on("CoOPS:PatchAccepted", function (event) {
       $('.editor-status').html('Saved');
     });
+
+    editor.on("CoOPS:ConnectionLost", function (event) {
+      var connectionLostMessage = $('.notifications').notifications('notification', 'load', event.data.message);
+      connectionLostMessage.addClass('connection-lost-message');
+    });
+
+    editor.on("CoOPS:Reconnect", function (event) {
+      $('.notifications').notifications('hideMessage', $('.notifications').find('.connection-lost-message'));
+    });
     
     // CoOPS Errors
     
