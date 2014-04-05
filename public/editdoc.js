@@ -11,13 +11,15 @@
     CKEDITOR.plugins.addExternal('change', '/ckplugins/change/');
     CKEDITOR.plugins.addExternal('coops', '/ckplugins/coops/');
     CKEDITOR.plugins.addExternal('coops-connector', '/ckplugins/coops-connector/');
-    CKEDITOR.plugins.addExternal('coops-cursors', '/ckplugins/coops-cursors/');
     CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
+    CKEDITOR.plugins.addExternal('coops-cursors', '/ckplugins/coops-cursors/');
+    CKEDITOR.plugins.addExternal('coops-sessionevents', '/ckplugins/coops-sessionevents/');
+    
     CKEDITOR.plugins.addExternal('mrmonkey', '/ckplugins/mrmonkey/');
     
     var editor = CKEDITOR.appendTo( 'ckcontainer', {
       skin: 'moono',
-      extraPlugins: 'coops,coops-connector,coops-dmp,coops-cursors,mrmonkey',
+      extraPlugins: 'coops,coops-connector,coops-dmp,coops-cursors,coops-sessionevents,mrmonkey',
       readOnly: true,
       height: 500,
       coops: {
@@ -49,6 +51,14 @@
 
     editor.on("CoOPS:Reconnect", function (event) {
       $('.notifications').find('.connection-lost-notification').notification("hide");
+    });
+
+    editor.on("CoOPS:CollaboratorJoined", function (event) {
+      $('.collaborators').collaborators("addCollaborator", event.data.sessionId, event.data.displayName||'Anonymous', event.data.email||(new Date().getTime() + '@no.invalid'));
+    });
+
+    editor.on("CoOPS:CollaboratorLeft", function (event) {
+      $('.collaborators').collaborators("removeCollaborator", event.data.sessionId);
     });
     
     // CoOPS Errors
