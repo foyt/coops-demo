@@ -23,13 +23,15 @@
               case 'OPEN':
                 this._editor.fire("CoOPS:CollaboratorJoined", {
                   displayName: sessionEvent.displayName,
-                  email: sessionEvent.email
+                  email: sessionEvent.email,
+                  sessionId: sessionId
                 });
               break;
               case 'CLOSE':
                 this._editor.fire("CoOPS:CollaboratorLeft", {
                   displayName: sessionEvent.displayName,
-                  email: sessionEvent.email
+                  email: sessionEvent.email,
+                  sessionId: sessionId
                 });
               break;
             }
