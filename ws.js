@@ -63,12 +63,18 @@
       }
     },
     
-    _onApiPatch: {
-      value: function (data) {
+    sendPatch: {
+      value: function (patch) {
         this._webSocket.send(JSON.stringify({
           type: 'update',
-          data: data
+          data: patch
         }));
+      }
+    },
+    
+    _onApiPatch: {
+      value: function (data) {
+        this.sendPatch(data);
       },
     },
     
@@ -148,6 +154,21 @@
                 
                 var client = new Client(webSocket, session._id.toString(), file._id.toString());
                 clients.push(client);
+                
+                if (session.joinRevision < file.revisionNumber) {
+                  api.fileUpdate(session._id.toString(), session.joinRevision, file._id.toString(),  function (err, code, patches) {
+                    if (err) {
+                      console.log("Could not retrieve missing patches while opening socket.");
+                      webSocket.close(1011, "Internal Error");
+                    } else {
+                      if (code === 200) {
+                        for (var i = 0, l = patches.length; i < l; i++) {
+                          client.sendPatch(patches[i]);
+                        }
+                      }
+                    }
+                  });
+                }
               }
             }
           });
