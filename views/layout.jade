@@ -8,6 +8,10 @@ html
     script(type='text/javascript',src='/scripts/notifications.js')
     link(href="//code.jquery.com/ui/1.10.3/themes/smoothness/jquery-ui.css",rel="stylesheet")
     block head
+    if piwik
+      script(type="text/javascript")
+        |var PIWIK_URL = "#{piwikUrl}";
+        |var PIWIK_SITEID = "#{piwikSiteId}";
   body
     .notifications
     .header 
@@ -26,3 +30,6 @@ html
         block content
     .footer
       block footer
+  if piwik
+    script(type="text/javascript",src="#{piwikUrl}/piwik.js")
+    script(type="text/javascript",src="/scripts/piwik.js")

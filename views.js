@@ -9,6 +9,7 @@
   var Image = Canvas.Image;
   var db = require('./db');
   var packageJson = require('./package.json');
+  var settings = require('./settings.json');
   
   module.exports.index = function (req, res) {
     if (!req.isAuthenticated()) {
@@ -16,7 +17,10 @@
         title : 'CoOPS Demo',
         version: packageJson.version,
         loggedUser: req.user,
-        files: []
+        files: [],
+        piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
+        piwikUrl: settings.piwik.url,
+        piwikSiteId: settings.piwik.siteId
       });
     } else {
       db.fileusers.find( { userId: new ObjectId( req.user._id.toString() ) }, function (err, fileUsers) {
@@ -31,7 +35,10 @@
                 title : 'CoOPS Demo',
                 version: packageJson.version,
                 loggedUser: req.user,
-                files: files
+                files: files,
+                piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
+                piwikUrl: settings.piwik.url,
+                piwikSiteId: settings.piwik.siteId
               });
             }
           });
@@ -44,7 +51,10 @@
     res.render('about', {
       title : 'About CoOPS Demo',
       version: packageJson.version,
-      loggedUser: req.user
+      loggedUser: req.user,
+      piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
+      piwikUrl: settings.piwik.url,
+      piwikSiteId: settings.piwik.siteId
     });
   };
   
@@ -52,7 +62,10 @@
     res.render('login', {
       title : 'Login to Co-Ops Demo',
       loggedUser: req.user,
-      redirectUrl: req.query.redirectUrl
+      redirectUrl: req.query.redirectUrl,
+      piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
+      piwikUrl: settings.piwik.url,
+      piwikSiteId: settings.piwik.siteId
     });
   };
   
@@ -87,7 +100,10 @@
             res.render('editdoc', {
               title : 'Edit document',
               loggedUser: req.user,
-              file: file
+              file: file,
+              piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
+              piwikUrl: settings.piwik.url,
+              piwikSiteId: settings.piwik.siteId
             });
           }
         }
@@ -128,7 +144,10 @@
             res.render('editimg', {
               title : 'Edit image',
               loggedUser: req.user,
-              file: file
+              file: file,
+              piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
+              piwikUrl: settings.piwik.url,
+              piwikSiteId: settings.piwik.siteId
             });
             
           }
