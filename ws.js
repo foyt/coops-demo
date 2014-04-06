@@ -141,6 +141,11 @@
                 console.log("Failed to open WebSocket: Session not found");
                 webSocket.close(1000, "Not found");
               } else {
+                db.filesessions.update(
+                  { fileId: new ObjectId(file._id.toString()), sessionId: new ObjectId(sessionId ) },
+                  { $set: { type: 'WS' } }
+                );
+                
                 var client = new Client(webSocket, session._id.toString(), file._id.toString());
                 clients.push(client);
               }

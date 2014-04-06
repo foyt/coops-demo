@@ -406,7 +406,8 @@
     db.filesessions.insert({
       fileId: new ObjectId(data.fileId),
       sessionId: new ObjectId(data.sessionId),
-      accessed: new Date().getTime()
+      accessed: new Date().getTime(),
+      type: 'REST'
     });
   });
   
@@ -416,13 +417,17 @@
   });
   
   schedule.scheduleJob(new schedule.RecurrenceRule(null, null, null, null, null, null, [0, 15, 30, 45]), function() {
-    db.filesessions.find( { accessed: { $lt: new Date().getTime() - (1000 * 10) } }, function (err, fileSessions) {
-      fileSessions.forEach(function (fileSession) {
-        apiEvents.emit("sessionClose", {
-          fileId: fileSession.fileId.toString(),
-          sessionId: fileSession.sessionId.toString()
+    db.filesessions.find( { accessed: { $lt: new Date().getTime() - (1000 * 10) }, type: 'REST' }, function (err, fileSessions) {
+      if (!err) {
+        fileSessions.forEach(function (fileSession) {
+          apiEvents.emit("sessionClose", {
+            fileId: fileSession.fileId.toString(),
+            sessionId: fileSession.sessionId.toString()
+          });
         });
-      });
+      } else {
+        console.log("Error occurred in scheduled filesession close check: " + err);
+      }
     });
   });
   
