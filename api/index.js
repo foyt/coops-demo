@@ -4,6 +4,7 @@
   var _ = require('underscore');
   var ObjectId = require('mongojs').ObjectId;
   var EventEmitter = require('events').EventEmitter;
+  var async = require('async');
   
   var settings = require('../settings.json');
   var db = require('../db');
@@ -17,6 +18,69 @@
     }
     
     db.files.findOne({ _id: new ObjectId(fileId.toString()) }, done);
+  }
+  
+  function getUserInfo(session, done) {
+    if (session.userId) {
+      db.users.findOne({_id: new ObjectId(session.userId.toString()) }, function(userErr, user) {
+        if (userErr) {
+          done("Error occurred while trying to find a session user: " + userErr, null);
+        } else {
+          if (user) {
+            db.useremails.findOne({ userId: new ObjectId(user._id.toString()) }, function(userEmailErr, userEmail) {
+              if (userEmailErr) {
+                done("Error occurred while trying to find a session user email: " + userEmailErr, null);
+              } else {
+                if (userEmail) {
+                  done(null, {
+                    sessionId: session._id.toString(),
+                    displayName: user.displayName||'Anonymous',
+                    email: userEmail.address
+                  });
+                } else {
+                  done(null, {
+                    sessionId: session._id.toString(),
+                    displayName: user.displayName||'Anonymous'
+                  });
+                }
+              }
+            });
+          } else {
+            done(null, {
+              sessionId: session._id.toString(),
+              displayName: 'Anonymous'
+            });
+          }
+        }
+      });
+    } else {
+      done(null, {
+        sessionId: session._id.toString(),
+        displayName: 'Anonymous'
+      });
+    }
+  }
+  
+  function getUserInfos(file, done) {
+    db.filesessions.find( { fileId: new ObjectId( file._id.toString() ) } , function (fileSessionErr, fileSessions) {
+      if (fileSessionErr) {
+        done(fileSessionErr, null);
+      } else {
+        var sessionIds = _.pluck(fileSessions, "sessionId").map(function (sessionId) {
+          return new ObjectId(sessionId.toString());
+        });
+        
+        db.sessions.find({ _id: { $in: sessionIds } }, function (sessionsErr, sessions) {
+          if (sessionsErr) {
+            done(sessionsErr, null);
+          } else {
+            async.map(sessions, getUserInfo, function (userInfoErr, userInfos) {
+              done(userInfoErr, userInfos);
+            });
+          }
+        });
+      }
+    });
   }
   
   var apiEvents = new EventEmitter();
@@ -247,14 +311,25 @@
                     "revisionNumber": parseInt(file.revisionNumber, 10)
                   });
                   
-                  done(null, 200, {
-                    "sessionId": session._id.toString(),
-                    "algorithm": session.algorithm,
-                    "revisionNumber": parseInt(file.revisionNumber, 10),
-                    "content": file.content,
-                    "contentType": file.contentType,
-                    "properties": file.properties,
-                    "extensions": extensions
+                  getUserInfos(file, function (userInfosErr, infos) {
+                    if (userInfosErr) {
+                      done(userInfosErr, 500, null);
+                    } else {
+                      extensions.sessionEvents = _.map(infos, function (info) {
+                        info.status = 'OPEN';
+                        return info;
+                      });
+                      
+                      done(null, 200, {
+                        "sessionId": session._id.toString(),
+                        "algorithm": session.algorithm,
+                        "revisionNumber": parseInt(file.revisionNumber, 10),
+                        "content": file.content,
+                        "contentType": file.contentType,
+                        "properties": file.properties,
+                        "extensions": extensions
+                      });
+                    }
                   });
                 }
               });
@@ -281,47 +356,6 @@
     }
   };
   
-  function getUserInfo(session, status, done) {
-    if (session.userId) {
-      db.users.findOne({_id: new ObjectId(session.userId.toString()) }, function(userErr, user) {
-        if (userErr) {
-          done("Error occurred while trying to find a session user: " + userErr, null);
-        } else {
-          if (user) {
-            db.useremails.findOne({ userId: new ObjectId(user._id.toString()) }, function(userEmailErr, userEmail) {
-              if (userEmailErr) {
-                done("Error occurred while trying to find a session user email: " + userEmailErr, null);
-              } else {
-                if (userEmail) {
-                  done(null, {
-                    status: status,
-                    displayName: user.displayName||'Anonymous',
-                    email: userEmail.address
-                  });
-                } else {
-                  done(null, {
-                    status: status,
-                    displayName: user.displayName||'Anonymous'
-                  });
-                }
-              }
-            });
-          } else {
-            done(null, {
-              status: status,
-              displayName: 'Anonymous'
-            });
-          }
-        }
-      });
-    } else {
-      done(null, {
-        status: status,
-        displayName: 'Anonymous'
-      });
-    }
-  }
-  
   function sendSessionEventsPatch(fileId, sessionId, status) {
     db.sessions.findOne({ _id: new ObjectId( sessionId.toString() ) }, function (sessionErr, session) {
       if (sessionErr) {
@@ -333,14 +367,13 @@
               console.log("Error occurred while trying to find a session file: " + err);
             } else {
               if (file) {
-                getUserInfo(session, status, function (err, info) {
-                  var users = {};
-                  users[session._id.toString()] = info;
+                getUserInfo(session, function (err, info) {
+                  info.status = status;
                   api.filePatch(file._id, {
                     sessionId: session._id.toString(),
                     revisionNumber: file.revisionNumber,
                     extensions: {
-                      "sessionEvents": [info]
+                      sessionEvents: [info]
                     }
                   }, function (err, code, file) {});
                 });
@@ -359,10 +392,16 @@
 
   api.on("sessionOpen", function (data) {
     sendSessionEventsPatch(data.fileId, data.sessionId, "OPEN");
+    db.filesessions.insert({
+      fileId: new ObjectId(data.fileId),
+      sessionId: new ObjectId(data.sessionId),
+      created: new Date().getTime()
+    });
   });
   
   api.on("sessionClose", function (data) {
     sendSessionEventsPatch(data.fileId, data.sessionId, "CLOSE");
+    db.filesessions.remove({ sessionId: new ObjectId( data.sessionId.toString() )});
   });
   
   module.exports = api;
