@@ -5,6 +5,7 @@
   var ObjectId = require('mongojs').ObjectId;
   var EventEmitter = require('events').EventEmitter;
   var async = require('async');
+  var schedule = require('node-schedule');
   
   var settings = require('../settings.json');
   var db = require('../db');
@@ -109,12 +110,17 @@
       }
     },
     
-    fileUpdate: function (revisionNumber, fileId, done) {
+    fileUpdate: function (sessionId, revisionNumber, fileId, done) {
       if (isNaN(revisionNumber)) {
         done("revisionNumber parameter is missing", 400, null);
         return;
       }
-      
+
+      if (!sessionId) {
+        done("sessionId parameter is missing", 400, null);
+        return;
+      }
+
       findFile(fileId, function (err, file) {
         if (err) {
           done(err, 500, null);
@@ -126,6 +132,11 @@
               if (err) {
                 done(err, 500, null);
               } else {
+                db.filesessions.update(
+                  { fileId: new ObjectId(file._id.toString()), sessionId: new ObjectId(sessionId.toString()) },
+                  { $set: { accessed: new Date().getTime() } }
+                );
+                
                 if (fileRevisions.length === 0) {
                   done(null, 204, null);
                 } else {
@@ -395,13 +406,24 @@
     db.filesessions.insert({
       fileId: new ObjectId(data.fileId),
       sessionId: new ObjectId(data.sessionId),
-      created: new Date().getTime()
+      accessed: new Date().getTime()
     });
   });
   
   api.on("sessionClose", function (data) {
     sendSessionEventsPatch(data.fileId, data.sessionId, "CLOSE");
     db.filesessions.remove({ sessionId: new ObjectId( data.sessionId.toString() )});
+  });
+  
+  schedule.scheduleJob(new schedule.RecurrenceRule(null, null, null, null, null, null, [0, 15, 30, 45]), function() {
+    db.filesessions.find( { accessed: { $lt: new Date().getTime() - (1000 * 10) } }, function (err, fileSessions) {
+      fileSessions.forEach(function (fileSession) {
+        apiEvents.emit("sessionClose", {
+          fileId: fileSession.fileId.toString(),
+          sessionId: fileSession.sessionId.toString()
+        });
+      });
+    });
   });
   
   module.exports = api;

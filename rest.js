@@ -18,7 +18,8 @@
     
     fileUpdate: function (req, res) {
       var revisionNumber = parseInt(req.query.revisionNumber, 10);
-      api.fileUpdate(revisionNumber, req.params.fileid, function (err, code, patches) {
+      var sessionId = req.query.sessionId;
+      api.fileUpdate(sessionId, revisionNumber, req.params.fileid, function (err, code, patches) {
         if (err) {
           res.send(code, err);
         } else {

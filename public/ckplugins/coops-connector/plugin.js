@@ -319,7 +319,7 @@
           }, this._editor.config.coops.reconnectTime||3000, this);
         } else {
           CKEDITOR.tools.setTimeout(function () {
-            this._ioHandler.get(this._editor.config.coops.serverUrl + '/update', [{ name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+            this._ioHandler.get(this._editor.config.coops.serverUrl + '/update', [{name: "sessionId", value: this._sessionId }, { name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
               if ((status === 200) || (status === 204)) {
                 this._startUpdatePolling();
                 this._editor.fire("CoOPS:Reconnect");
@@ -469,7 +469,7 @@
       
       _checkUpdates: function (callback) {
         var url = this._editor.config.coops.serverUrl + '/update';
-        this._ioHandler.get(url, [{ name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
+        this._ioHandler.get(url, [{name: "sessionId", value: this._sessionId }, { name: "revisionNumber", value: this._revisionNumber }], CKEDITOR.tools.bind(function (status, responseJson, responseText) {
           if (status === 0) {
             this._stopUpdatePolling();
             if (!this._leavingPage) {
@@ -528,7 +528,7 @@
         } else {
           // Our patch was accepted, yay!
           this._revisionNumber = patch.revisionNumber;
-          var patchData = this._patchData[this._revisionNumber];
+          var patchData = this._patchData[this._revisionNumber]||{};
 
           this._editor.fire("CoOPS:PatchAccepted", {
             revisionNumber: this._revisionNumber,
