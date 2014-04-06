@@ -292,7 +292,7 @@
                    "Client supported: " + clientAlgorithms.toString(), 501, null);
               return;
             } else {
-              db.sessions.insert({ userId: userId, algorithm: algorithm.getName() }, function (sessionErr, session) {
+              db.sessions.insert({ userId: userId, algorithm: algorithm.getName(), joinRevision: file.revisionNumber }, function (sessionErr, session) {
                 if (sessionErr) {
                   done(sessionErr, 500, null);
                 } else {
@@ -314,14 +314,6 @@
                     extensions.webSocket = webSocketExtension;
                   }
                   
-                  apiEvents.emit("sessionOpen", {
-                    "sessionId": session._id.toString(),
-                    "userId": userId,
-                    "fileId": fileId,
-                    "algorithm": session.algorithm,
-                    "revisionNumber": parseInt(file.revisionNumber, 10)
-                  });
-                  
                   getUserInfos(file, function (userInfosErr, infos) {
                     if (userInfosErr) {
                       done(userInfosErr, 500, null);
@@ -329,6 +321,14 @@
                       extensions.sessionEvents = _.map(infos, function (info) {
                         info.status = 'OPEN';
                         return info;
+                      });
+                      
+                      apiEvents.emit("sessionOpen", {
+                        "sessionId": session._id.toString(),
+                        "userId": userId,
+                        "fileId": fileId,
+                        "algorithm": session.algorithm,
+                        "revisionNumber": parseInt(file.revisionNumber, 10)
                       });
                       
                       done(null, 200, {
@@ -370,7 +370,7 @@
   function sendSessionEventsPatch(fileId, sessionId, status) {
     db.sessions.findOne({ _id: new ObjectId( sessionId.toString() ) }, function (sessionErr, session) {
       if (sessionErr) {
-        console.log("Error occurred while trying to find a session: " + sessionErr);
+        console.log("Error occurred while finding a session: " + sessionErr);
       } else {
         if (session) {
           findFile(fileId, function (err, file) {
@@ -380,13 +380,21 @@
               if (file) {
                 getUserInfo(session, function (err, info) {
                   info.status = status;
-                  api.filePatch(file._id, {
-                    sessionId: session._id.toString(),
-                    revisionNumber: file.revisionNumber,
-                    extensions: {
-                      sessionEvents: [info]
+                  db.sessions.insert({ userId: session.userId, algorithm: session.algorithm }, function (serverSessionErr, serverSession) {
+                    if (serverSessionErr) {
+                      console.log("Error occurred while creating server session: " + serverSessionErr);
+                    } else {
+                      api.filePatch(file._id, {
+                        sessionId: serverSession._id.toString(),
+                        revisionNumber: file.revisionNumber,
+                        extensions: {
+                          sessionEvents: [info]
+                        }
+                      }, function (err, code, file) {
+                        db.sessions.remove({ _id: serverSession._id } );
+                      });
                     }
-                  }, function (err, code, file) {});
+                  });
                 });
                 
               } else {
@@ -402,13 +410,13 @@
   }
 
   api.on("sessionOpen", function (data) {
-    sendSessionEventsPatch(data.fileId, data.sessionId, "OPEN");
     db.filesessions.insert({
       fileId: new ObjectId(data.fileId),
       sessionId: new ObjectId(data.sessionId),
       accessed: new Date().getTime(),
       type: 'REST'
     });
+    sendSessionEventsPatch(data.fileId, data.sessionId, "OPEN");
   });
   
   api.on("sessionClose", function (data) {
