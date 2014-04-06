@@ -1206,7 +1206,7 @@
     
     _pollUpdates : function(event) {
       // TODO: Proper error handling
-      $.ajax(this.options.serverUrl + '/update?revisionNumber=' + this._revisionNumber, {
+      $.ajax(this.options.serverUrl + '/update?sessionId=' + this._sessionId + '&revisionNumber=' + this._revisionNumber, {
         complete: $.proxy(function (jqXHR) {
           setTimeout($.proxy(this._pollUpdates, this), this.options.updateInterval);
           
