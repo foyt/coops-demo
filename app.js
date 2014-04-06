@@ -142,5 +142,6 @@
   });
 
   ws.configure(httpServer, httpsServer);
+  db.filesessions.remove();
   
 }).call(this);
