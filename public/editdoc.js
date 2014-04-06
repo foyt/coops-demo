@@ -54,7 +54,7 @@
     });
 
     editor.on("CoOPS:CollaboratorJoined", function (event) {
-      $('.collaborators').collaborators("addCollaborator", event.data.sessionId, event.data.displayName||'Anonymous', event.data.email||(new Date().getTime() + '@no.invalid'));
+      $('.collaborators').collaborators("addCollaborator", event.data.sessionId, event.data.displayName||'Anonymous', event.data.email||(event.data.sessionId + '@no.invalid'));
     });
 
     editor.on("CoOPS:CollaboratorLeft", function (event) {
