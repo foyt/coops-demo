@@ -19,8 +19,8 @@
         loggedUser: req.user,
         files: [],
         piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
-        piwikUrl: settings.piwik.url,
-        piwikSiteId: settings.piwik.siteId
+        piwikUrl: settings.piwik ? settings.piwik.url : null,
+        piwikSiteId: settings.piwik ? settings.piwik.siteId : null
       });
     } else {
       db.fileusers.find( { userId: new ObjectId( req.user._id.toString() ) }, function (err, fileUsers) {
@@ -37,8 +37,8 @@
                 loggedUser: req.user,
                 files: files,
                 piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
-                piwikUrl: settings.piwik.url,
-                piwikSiteId: settings.piwik.siteId
+                piwikUrl: settings.piwik ? settings.piwik.url : null,
+                piwikSiteId: settings.piwik ? settings.piwik.siteId : null
               });
             }
           });
@@ -53,8 +53,8 @@
       version: packageJson.version,
       loggedUser: req.user,
       piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
-      piwikUrl: settings.piwik.url,
-      piwikSiteId: settings.piwik.siteId
+      piwikUrl: settings.piwik ? settings.piwik.url : null,
+      piwikSiteId: settings.piwik ? settings.piwik.siteId : null
     });
   };
   
@@ -64,8 +64,8 @@
       loggedUser: req.user,
       redirectUrl: req.query.redirectUrl,
       piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
-      piwikUrl: settings.piwik.url,
-      piwikSiteId: settings.piwik.siteId
+      piwikUrl: settings.piwik ? settings.piwik.url : null,
+      piwikSiteId: settings.piwik ? settings.piwik.siteId : null
     });
   };
   
@@ -102,8 +102,8 @@
               loggedUser: req.user,
               file: file,
               piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
-              piwikUrl: settings.piwik.url,
-              piwikSiteId: settings.piwik.siteId
+              piwikUrl: settings.piwik ? settings.piwik.url : null,
+              piwikSiteId: settings.piwik ? settings.piwik.siteId : null
             });
           }
         }
@@ -146,8 +146,8 @@
               loggedUser: req.user,
               file: file,
               piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
-              piwikUrl: settings.piwik.url,
-              piwikSiteId: settings.piwik.siteId
+              piwikUrl: settings.piwik ? settings.piwik.url : null,
+              piwikSiteId: settings.piwik ? settings.piwik.siteId : null
             });
             
           }
