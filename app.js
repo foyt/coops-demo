@@ -20,7 +20,12 @@
   
   if (settings.http) {
     httpServer = http.createServer(app);
-    httpServer.listen(settings.http.port, settings.http.host);
+    var port = settings.http.port;
+    if (port === "$ENV") {
+      port = process.env.PORT;
+    }
+
+    httpServer.listen(port, settings.http.host);
     console.log("http server listening at " + settings.http.host + ':' + settings.http.port);
   }
   
