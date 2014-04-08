@@ -26,7 +26,7 @@
     }
 
     httpServer.listen(port, settings.http.host);
-    console.log("http server listening at " + settings.http.host + ':' + settings.http.port);
+    console.log("http server listening at " + settings.http.host + ':' + port);
   }
   
   if (settings.https) {
