@@ -11,7 +11,10 @@ This is an demo project for (http://github.com/foyt/coops-spec/).
 Install
 =======
 
-npm install coops-demo
+Installation on Heroku
+--------
+
+See https://github.com/foyt/coops-demo/wiki/Installation-on-Heroku
 
 Support
 =========
