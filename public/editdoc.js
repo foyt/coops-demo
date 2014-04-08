@@ -14,12 +14,15 @@
     CKEDITOR.plugins.addExternal('coops-dmp', '/ckplugins/coops-dmp/');
     CKEDITOR.plugins.addExternal('coops-cursors', '/ckplugins/coops-cursors/');
     CKEDITOR.plugins.addExternal('coops-sessionevents', '/ckplugins/coops-sessionevents/');
+    CKEDITOR.plugins.addExternal('mathjax', '/ckplugins/mathjax/');
+    CKEDITOR.plugins.addExternal('widget', '/ckplugins/widget/');
+    CKEDITOR.plugins.addExternal('lineutils', '/ckplugins/lineutils/');
     
     CKEDITOR.plugins.addExternal('mrmonkey', '/ckplugins/mrmonkey/');
     
     var editor = CKEDITOR.appendTo( 'ckcontainer', {
       skin: 'moono',
-      extraPlugins: 'coops,coops-connector,coops-dmp,coops-cursors,coops-sessionevents,mrmonkey',
+      extraPlugins: 'coops,coops-connector,coops-dmp,coops-cursors,coops-sessionevents,mrmonkey,mathjax',
       readOnly: true,
       height: 500,
       coops: {
