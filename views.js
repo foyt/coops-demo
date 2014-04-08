@@ -63,6 +63,9 @@
       title : 'Login to Co-Ops Demo',
       loggedUser: req.user,
       redirectUrl: req.query.redirectUrl,
+      facebook: !!settings.auth.facebook,
+      google: !!settings.auth.google,
+      github: !!settings.auth.github,
       piwik: settings.piwik && settings.piwik.url && settings.piwik.siteId,
       piwikUrl: settings.piwik ? settings.piwik.url : null,
       piwikSiteId: settings.piwik ? settings.piwik.siteId : null
