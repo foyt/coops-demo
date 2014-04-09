@@ -1,6 +1,8 @@
 (function() {
   'use strict';
   
+  /* global MozWebSocket  */
+  
   function Rect2D(x, y, width, height) {
     this.val(x, y, width, height);
   }
@@ -1023,6 +1025,7 @@
       this._patches = [];
       this._patching = false;
       this._patchingPaused = false;
+      this._webSocket = null;
       
       this.element.on("join", $.proxy(this._onJoin, this));
       
@@ -1091,27 +1094,41 @@
         this._patching = false;
         this.element.trigger("patched");
       } else {
-        var patch = this._mergePatches();
+        this._pausePatching();
         
-        // TODO: Proper error handling
-        $.ajax(this.options.serverUrl, {
-          data: {
-            patch: patch.delta ? JSON.stringify(patch.delta) : null,
-            properties: patch.properties,
-            sessionId: this._sessionId,
-            revisionNumber: this._revisionNumber
-          },
-          type: 'PATCH',
-          accept: 'application/json',
-          complete: $.proxy(function (jqXHR) {
-            if (jqXHR.status === 204) {
-              this._patches.splice(0, 1);
-              this._pausePatching();
-            } else {
-              this._sendNextPatch();
-            }
-          }, this)
-        });
+        var patchData = this._mergePatches();
+        var patch = patchData.delta ? JSON.stringify(patchData.delta) : null;
+
+        if (this._webSocket) {
+          this._webSocket.send(JSON.stringify({
+            type: 'patch',
+            data: { patch: patch, properties: patchData.properties, revisionNumber : this._revisionNumber, sessionId: this._sessionId }
+          }));
+        } else {
+          // TODO: Proper error handling
+          $.ajax(this.options.serverUrl, {
+            data: {
+              patch: patch,
+              properties: patchData.properties,
+              sessionId: this._sessionId,
+              revisionNumber: this._revisionNumber
+            },
+            type: 'PATCH',
+            accept: 'application/json',
+            complete: $.proxy(function (jqXHR) {
+              if (jqXHR.status !== 204) {
+                if (jqXHR.status === 409) {
+                  this.element.trigger('patchRejected', {
+                    reason: jqXHR.responseText
+                  });
+                } else {
+                  // TODO: Proper error handling
+                  alert('Patching failed: ' + jqXHR.responseText);
+                }
+              }
+            }, this)
+          });
+        }
       }
     },
     
@@ -1150,15 +1167,12 @@
     },
     
     _applyPatches: function (patches) {
-      var patch = patches.splice(0, 1)[0];
-      this._applyPatch(patch, $.proxy(function () {
-        if (patches.length > 0) {
-          this._applyPatches(patches);
-        }
-      }, this));
+      for (var i = 0, l = patches.length; i < l; i++) {
+        this._applyPatch(patches[i]);
+      }
     },
     
-    _applyPatch: function (patch, callback) {
+    _applyPatch: function (patch) {
       if (this._sessionId != patch.sessionId) {
         // Received a patch from other client
         
@@ -1200,7 +1214,7 @@
       } else {
         // Our patch was accepted, yay!
         this._revisionNumber = patch.revisionNumber;
-        this._resumePatching();
+        this.element.trigger("patchAccepted", patch);
       }
     },
     
@@ -1223,21 +1237,82 @@
       });
     },
     
+    _openWebSocket: function (url) {
+      if ((typeof window.WebSocket) !== 'undefined') {
+        return new WebSocket(url);
+      } else if ((typeof window.MozWebSocket) !== 'undefined') {
+        return new MozWebSocket(url);
+      }
+      
+      return null;
+    },
+    
     _onJoin: function (event, data) {
       this._revisionNumber = parseInt(data.revisionNumber, 10);
       this._sessionId = data.sessionId;
+      
       var contentType = data.contentType;
+      var extensions = data.extensions;
 
       var img = new Image();
       img.onload = $.proxy(function () {
         $(this.element).CoIllusionist('loadImage', img, true);
         this.element.on('offscreen.change', $.proxy(this._onOffscreenChange, this));
         this.element.on('offscreen.resize', $.proxy(this._onOffscreenResize, this));
-        this._startUpdatePolling();
+        this.element.on('patchRejected', $.proxy(this._onPatchRejected, this));
+        this.element.on('patchAccepted', $.proxy(this._onPatchAccepted, this));
+        
+        if (extensions.webSocket) {
+          var secure = window.location.protocol.indexOf('https') === 0;
+          var webSocketUrl = secure ? extensions.webSocket.wss : extensions.webSocket.ws;
+          if (webSocketUrl) {
+            this._webSocket = this._openWebSocket(webSocketUrl);
+            this._webSocket.onmessage = $.proxy(this._onWebSocketMessage, this);
+            this._webSocket.onclose = $.proxy(this._onWebSocketClose, this);
+          }
+        }
+        
+        if (!this._webSocket) {
+          this._startUpdatePolling();
+        }
+        
         this.element.trigger('sessionStart');
       }, this);
       
       img.src = 'data:' + contentType + ';base64,' + data.content;
+    },
+    
+    _onWebSocketMessage: function (event) {
+      var message = JSON.parse(event.data);
+      if (message && message.type) {
+        switch (message.type) {
+          case 'update':
+            if (message.data) {
+              this._applyPatch(message.data);
+            }
+          break;
+          case 'patchRejected':
+            this.element.trigger('patchRejected', {
+              reason: message.data.message
+            });
+          break;
+          case 'patchError':
+            // TODO: Proper error handling
+            alert("Received a patch error: " + message.data.message);
+          break;
+          default:
+            // TODO: Proper error handling
+            alert("Unknown WebSocket message " + message.type + ' received');
+          break;
+        }
+      } else {
+        // TODO: Proper error handling
+        alert("Invalid WebSocket message received");
+      }
+    },
+    
+    _onWebSocketClose: function (event) {
+      // TODO: Add reconnect...
     },
     
     _onOffscreenChange: function (event, data) {
@@ -1270,6 +1345,15 @@
         width: data.width,
         height: data.height
       }, 0);
+    },
+    
+    _onPatchRejected: function (event, data) {
+      this._resumePatching();
+    },
+    
+    _onPatchAccepted: function () {
+      this._patches.splice(0, 1);
+      this._resumePatching();
     },
     
     _destroy : function() {
