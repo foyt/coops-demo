@@ -11,6 +11,11 @@ This is an demo project for (http://github.com/foyt/coops-spec/).
 Install
 =======
 
+Installing locally
+--------
+
+See https://github.com/foyt/coops-demo/wiki/Running-locally
+
 Installation on Heroku
 --------
 
