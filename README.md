@@ -1,6 +1,10 @@
 Up to date documentation
 ========================
 
+# THIS PROJECT IS DEPRECATED
+
+This project is no longer maintained
+
 [Documentation](http://github.com/foyt/coops-demo/)
 
 Introduction
